@@ -31,14 +31,14 @@
 /* USER CODE BEGIN PD */
 #define MIN_PULSE_LENGTH 20000 * 0.05 // Minimum pulse length : 1000µs
 #define MAX_PULSE_LENGTH 20000 * 0.1  // Maximum pulse length : 2000µs
-/* USER CODE END PD */
+                                      /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
- ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef hadc1;
 
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
@@ -53,11 +53,11 @@ int value3 = -1; // ADC value
 int inloop = 0;
 int statecode = 0b0000;
 int tmp = 0;
-int pulse_servo1 = 0;  // Servo 1 PWM pulse
-int pulse_servo2 = 0;  // Servo 2 PWM pulse
-int pulse_servo3 = 0;  // Servo 3 PWM pulse
-int pulse_BLDC = 0;    // PWM pulse
-float power_BLDC = 10; // BLDC throttle // 最優參數：13
+int pulse_servo1 = 0; // Servo 1 PWM pulse
+int pulse_servo2 = 0; // Servo 2 PWM pulse
+int pulse_servo3 = 0; // Servo 3 PWM pulse
+int pulse_BLDC = 0;   // PWM pulse
+float power_BLDC = 9; // BLDC throttle // 最優參數：13
 float degree_servo = 90;
 int mode = 0; // ESC mode
 int timestart = 0;
@@ -103,9 +103,9 @@ static void lineFollowerBackward(float operationTime, float power, int *tg);
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
+ * @brief  The application entry point.
+ * @retval int
+ */
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -149,29 +149,13 @@ int main(void)
   brake();
   // unbrake();
   HAL_Delay(3000);
-  mode = 3;
+  mode = 5;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    // 中斷測試
-    // HAL_TIM_PeriodElapsedCallback(&htim3);
-
-    // 類比輸入
-    // HAL_ADC_Start(&hadc1);
-    // HAL_ADC_PollForConversion(&hadc1, 1);
-    // value0 = Board_Get_ADCChannelValue(&hadc1, 0);
-    // value1 = Board_Get_ADCChannelValue(&hadc1, 1);
-    // value2 = Board_Get_ADCChannelValue(&hadc1, 2);
-    // value3 = Board_Get_ADCChannelValue(&hadc1, 3);
-    // HAL_Delay(500);
-
-    // 全域變數測試
-    // statecode = 0;
-
-    // ESC test
     switch (mode)
     {
     case 0:
@@ -183,12 +167,6 @@ int main(void)
       break;
 
     case 2:
-      HAL_Delay(3000);
-      setPower(power_BLDC);
-      // BLDC_test();
-      break;
-
-    case 3:
       // 起步
       setPower(power_BLDC);
       HAL_Delay(2000);
@@ -215,10 +193,10 @@ int main(void)
 
       // 第 4 段，第一段循跡
       lineFollower(3, 6, &trigger);
-      lineFollower(1, 17, &trigger);
+      lineFollower(1, 16, &trigger);
 
       // 第 5 段，變換車道
-      setPower(16); // 根據電量調整
+      setPower(13.5); // 根據電量調整
       writeServo(60);
       // HAL_Delay(950); //轉回黑線_往前
       HAL_Delay(900); //轉回黑線_往後，900~830
@@ -244,6 +222,7 @@ int main(void)
       HAL_Delay(800);
       // pulse_servo2 = 500 + 2000 * 115 / 180;
       // pulse_servo3 = 500 + 2000 * 120 / 180; // 130?
+      writeServo(82);
       pulse_servo2 = 500 + 2000 * 115 / 180;
       pulse_servo3 = 500 + 2000 * 130 / 180; // 130?
       __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
@@ -263,10 +242,10 @@ int main(void)
       // 向後轉正模式
       while (trigger < 2)
       {
-        lineFollower(100, 18, &trigger);
+        lineFollower(100, 17.5, &trigger);
       }
       writeServo(90);
-      HAL_Delay(500);
+      HAL_Delay(300);
 
       // 第 8 段，第一停止區
       setPower(0);
@@ -274,18 +253,36 @@ int main(void)
       HAL_Delay(3500);
       unbrake();
 
-      // 第 9 段，循機至第二停止區
-      lineFollowerBackward(3, 6, &trigger);
+      // 第 9 段，循跡至第二停止區
+      lineFollowerBackward(5, 6.8, &trigger);
       lineFollowerBackward(4, 0, &trigger);
       // brake();
       mode = 0;
+      break;
 
-      // case 4:
-      //   pulse_servo2 = 500 + 2000 * 90 / 180;
-      //   pulse_servo3 = pulse_servo2;
-      //   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
-      //   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-      //   writeServo(90);
+    case 3: // 伺服測試
+      pulse_servo2 = 500 + 2000 * 90 / 180;
+      pulse_servo3 = pulse_servo2;
+      __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
+      __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
+      writeServo(90);
+      break;
+
+    case 4: // 無刷測試
+      HAL_Delay(3000);
+      setPower(13);
+      // BLDC_test();
+      break;
+
+    case 5: // 類比輸入
+      HAL_ADC_Start(&hadc1);
+      HAL_ADC_PollForConversion(&hadc1, 1);
+      value0 = Board_Get_ADCChannelValue(&hadc1, 0);
+      value1 = Board_Get_ADCChannelValue(&hadc1, 1);
+      value2 = Board_Get_ADCChannelValue(&hadc1, 2);
+      value3 = Board_Get_ADCChannelValue(&hadc1, 3);
+      HAL_Delay(500);
+      break;
     }
 
     /* USER CODE END WHILE */
@@ -296,9 +293,9 @@ int main(void)
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
+ * @brief System Clock Configuration
+ * @retval None
+ */
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -306,8 +303,8 @@ void SystemClock_Config(void)
   RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
+   * in the RCC_OscInitTypeDef structure.
+   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
@@ -321,9 +318,8 @@ void SystemClock_Config(void)
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+   */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
@@ -342,10 +338,10 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief ADC1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief ADC1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_ADC1_Init(void)
 {
 
@@ -360,7 +356,7 @@ static void MX_ADC1_Init(void)
   /* USER CODE END ADC1_Init 1 */
 
   /** Common config
-  */
+   */
   hadc1.Instance = ADC1;
   hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
   hadc1.Init.ContinuousConvMode = DISABLE;
@@ -374,7 +370,7 @@ static void MX_ADC1_Init(void)
   }
 
   /** Configure Regular Channel
-  */
+   */
   sConfig.Channel = ADC_CHANNEL_1;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
@@ -420,14 +416,13 @@ static void MX_ADC1_Init(void)
     Error_Handler();
   }
   /* USER CODE END ADC1_Init 2 */
-
 }
 
 /**
-  * @brief TIM1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief TIM1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_TIM1_Init(void)
 {
 
@@ -493,14 +488,13 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 2 */
   HAL_TIM_MspPostInit(&htim1);
-
 }
 
 /**
-  * @brief TIM2 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief TIM2 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_TIM2_Init(void)
 {
 
@@ -542,14 +536,13 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 2 */
   HAL_TIM_MspPostInit(&htim2);
-
 }
 
 /**
-  * @brief TIM3 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief TIM3 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_TIM3_Init(void)
 {
 
@@ -588,14 +581,13 @@ static void MX_TIM3_Init(void)
   /* USER CODE BEGIN TIM3_Init 2 */
 
   /* USER CODE END TIM3_Init 2 */
-
 }
 
 /**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief GPIO Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -625,7 +617,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
 }
 
 /* USER CODE BEGIN 4 */
@@ -926,15 +917,11 @@ static void lineFollowerBackward(float operationTime, float power, int *tg)
       DRL(); //急右飄
       break;
     case 0b0000:
-      writeServo(90);
-      break;
-    case 0b0110:
       pulse_servo2 = 500 + 2000 * 90 / 180;
       pulse_servo3 = pulse_servo2;
       __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
       __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
       writeServo(90);
-      *tg += 1;
       break;
     }
 
@@ -945,9 +932,9 @@ static void lineFollowerBackward(float operationTime, float power, int *tg)
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
@@ -959,14 +946,14 @@ void Error_Handler(void)
   /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
