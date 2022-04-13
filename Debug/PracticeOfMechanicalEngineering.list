@@ -1371,9 +1371,9 @@ int main(void)
   HAL_Delay(3000);
  8000fb0:	f640 30b8 	movw	r0, #3000	; 0xbb8
  8000fb4:	f001 f9e4 	bl	8002380 <HAL_Delay>
-  mode = 5;
+  mode = 2;
  8000fb8:	4b9a      	ldr	r3, [pc, #616]	; (8001224 <main+0x2f8>)
- 8000fba:	2205      	movs	r2, #5
+ 8000fba:	2202      	movs	r2, #2
  8000fbc:	601a      	str	r2, [r3, #0]
 
   /* Infinite loop */
@@ -1617,7 +1617,7 @@ int main(void)
  8001146:	f000 fbd5 	bl	80018f4 <unbrake>
 
       // 第 9 段，循跡至第二停止區
-      lineFollowerBackward(5, 6.8, &trigger);
+      lineFollowerBackward(5, 6.3, &trigger);
  800114a:	4a3c      	ldr	r2, [pc, #240]	; (800123c <main+0x310>)
  800114c:	4942      	ldr	r1, [pc, #264]	; (8001258 <main+0x32c>)
  800114e:	4843      	ldr	r0, [pc, #268]	; (800125c <main+0x330>)
@@ -1743,7 +1743,7 @@ int main(void)
  800124c:	42700000 	.word	0x42700000
  8001250:	42a40000 	.word	0x42a40000
  8001254:	418c0000 	.word	0x418c0000
- 8001258:	40d9999a 	.word	0x40d9999a
+ 8001258:	40c9999a 	.word	0x40c9999a
  800125c:	40a00000 	.word	0x40a00000
  8001260:	41500000 	.word	0x41500000
  8001264:	20000000 	.word	0x20000000

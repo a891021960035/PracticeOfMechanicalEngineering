@@ -149,7 +149,7 @@ int main(void)
   brake();
   // unbrake();
   HAL_Delay(3000);
-  mode = 5;
+  mode = 2;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -254,7 +254,7 @@ int main(void)
       unbrake();
 
       // 第 9 段，循跡至第二停止區
-      lineFollowerBackward(5, 6.8, &trigger);
+      lineFollowerBackward(5, 6.3, &trigger);
       lineFollowerBackward(4, 0, &trigger);
       // brake();
       mode = 0;
