@@ -149,7 +149,7 @@ int main(void)
   brake();
   // unbrake();
   HAL_Delay(3000);
-  mode = 2;
+  mode = 3;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -163,7 +163,7 @@ int main(void)
       break;
 
     case 1:
-      setPower(100);
+      setPower(10);
       break;
 
     case 2:
