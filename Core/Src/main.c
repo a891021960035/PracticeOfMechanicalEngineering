@@ -31,7 +31,7 @@
 /* USER CODE BEGIN PD */
 #define MIN_PULSE_LENGTH 20000 * 0.05 // Minimum pulse length : 1000µs
 #define MAX_PULSE_LENGTH 20000 * 0.1  // Maximum pulse length : 2000µs
-/* USER CODE END PD */
+                                      /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
@@ -55,8 +55,10 @@ int encoderRB = 0;
 int encoderLA = 0;
 int encoderLB = 0;
 int position_encoderR = 0;
+int position_encoderL = 0;
 int statecode = 0b0000;
-int encoderid = 0b0000;
+int encoderRid = 0b0000;
+int encoderLid = 0b0000;
 int encodercode[16] = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0};
 int tmp = 0;
 int pulse_servo1 = 0; // Servo 1 PWM pulse
@@ -94,7 +96,6 @@ static void DRS(); //微右飄
 static void DRL(); //急右飄
 static void DLS(); //微左飄
 static void DLL(); //急左飄
-static void BLDC_test();
 static void waitBlack(int ch);
 static void lineFollower(float operationTime, float power, int *tg);
 static void lineFollowerBackward(float operationTime, float power, int *tg);
@@ -124,9 +125,12 @@ int main(void)
   pulse_servo2 = MIN_PULSE_LENGTH;
   pulse_servo3 = MIN_PULSE_LENGTH;
   pulse_BLDC = MIN_PULSE_LENGTH;
-  encoderRA = HAL_GPIO_ReadPin(GPIOB, GPIO_Pin_15);
-  encoderRB = HAL_GPIO_ReadPin(GPIOB, GPIO_Pin_13);
-  encoderid = encoderRA << 3 + encoderRB << 2 + encoderRA << 1 + encoderRB;
+  encoderRA = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15);
+  encoderRB = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14);
+  encoderRid = (encoderRA << 3) + (encoderRB << 2) + (encoderRA << 1) + encoderRB;
+  encoderLA = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13);
+  encoderLB = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12);
+  encoderLid = (encoderLA << 3) + (encoderLB << 2) + (encoderLA << 1) + encoderLB;
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -143,7 +147,6 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);                 // Servo 1
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);                 // Servo 2
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);                 // Servo 3
@@ -607,29 +610,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin : PC13 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PB12 PB14 */
-  GPIO_InitStruct.Pin = GPIO_PIN_12 | GPIO_PIN_14;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PB13 PB15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13 | GPIO_PIN_15;
+  /*Configure GPIO pins : PB12 PB13 PB14 PB15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -673,10 +659,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  encoderRA = HAL_GPIO_ReadPin(GPIOB, GPIO_Pin_15);
-  encoderRB = HAL_GPIO_ReadPin(GPIOB, GPIO_Pin_13);
-  encoderid = encoderid << 2 & 0x0F + encoderRA << 1 + encoderRB;
-  position_encoderR = position_encoderR + encodercode[encoderid];
+  encoderRA = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15);
+  encoderRB = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14);
+  encoderRid = ((encoderRid << 2) & 0x0F) + (encoderRA << 1) + encoderRB;
+  position_encoderR = position_encoderR + encodercode[encoderRid];
+
+  encoderLA = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13);
+  encoderLB = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12);
+  encoderLid = ((encoderLid << 2) & 0x0F) + (encoderLA << 1) + encoderLB;
+  position_encoderL = position_encoderL - encodercode[encoderLid];
 }
 
 static void writeServo(float angle)
@@ -761,18 +752,6 @@ static void DLL(void) //急左飄
   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
   writeServo(70);
-}
-
-static void BLDC_test(void)
-{
-  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, MIN_PULSE_LENGTH);
-  for (pulse_BLDC = MIN_PULSE_LENGTH; pulse_BLDC <= MAX_PULSE_LENGTH; pulse_BLDC += 5)
-  {
-    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pulse_BLDC);
-    HAL_Delay(20);
-  }
-  mode = 0;
-  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, MIN_PULSE_LENGTH);
 }
 
 static void waitBlack(int ch)
@@ -919,7 +898,7 @@ static void lineFollowerBackward(float operationTime, float power, int *tg)
     }
 
     if (operationTime == 100)
-      brake;
+      break;
   }
 }
 /* USER CODE END 4 */
