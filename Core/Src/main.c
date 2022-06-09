@@ -31,7 +31,7 @@
 /* USER CODE BEGIN PD */
 #define MIN_PULSE_LENGTH 20000 * 0.05 // Minimum pulse length : 1000µs
 #define MAX_PULSE_LENGTH 20000 * 0.1  // Maximum pulse length : 2000µs
-                                      /* USER CODE END PD */
+/* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
@@ -50,14 +50,19 @@ int value0 = -1; // ADC value
 int value1 = -1; // ADC value
 int value2 = -1; // ADC value
 int value3 = -1; // ADC value
-int inloop = 0;
+int encoderRA = 0;
+int encoderRB = 0;
+int encoderLA = 0;
+int encoderLB = 0;
+int position_encoderR = 0;
 int statecode = 0b0000;
+int encoderid = 0b0000;
+int encodercode[16] = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0};
 int tmp = 0;
 int pulse_servo1 = 0; // Servo 1 PWM pulse
 int pulse_servo2 = 0; // Servo 2 PWM pulse
 int pulse_servo3 = 0; // Servo 3 PWM pulse
 int pulse_BLDC = 0;   // PWM pulse
-float power_BLDC = 9; // BLDC throttle // 最優參數：13
 float degree_servo = 90;
 int mode = 0; // ESC mode
 int timestart = 0;
@@ -76,22 +81,19 @@ static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 uint32_t Board_Get_ADCChannelValue(ADC_HandleTypeDef *hadc, uint32_t channel);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 static void writeServo(float angle);
 static void setPower(float power);
 static void brake();
 static void unbrake();
-static void TRS();  //微右轉
-static void TRL();  //急右轉
-static void TLS();  //微左轉
-static void TLL();  //急左轉
-static void TRSB(); //微右轉
-static void TRLB(); //急右轉
-static void TLSB(); //微左轉
-static void TLLB(); //急左轉
-static void DRS();  //微右飄
-static void DRL();  //急右飄
-static void DLS();  //微左飄
-static void DLL();  //急左飄
+static void TRS(); //微右轉
+static void TRL(); //急右轉
+static void TLS(); //微左轉
+static void TLL(); //急左轉
+static void DRS(); //微右飄
+static void DRL(); //急右飄
+static void DLS(); //微左飄
+static void DLL(); //急左飄
 static void BLDC_test();
 static void waitBlack(int ch);
 static void lineFollower(float operationTime, float power, int *tg);
@@ -122,6 +124,9 @@ int main(void)
   pulse_servo2 = MIN_PULSE_LENGTH;
   pulse_servo3 = MIN_PULSE_LENGTH;
   pulse_BLDC = MIN_PULSE_LENGTH;
+  encoderRA = HAL_GPIO_ReadPin(GPIOB, GPIO_Pin_15);
+  encoderRB = HAL_GPIO_ReadPin(GPIOB, GPIO_Pin_13);
+  encoderid = encoderRA << 3 + encoderRB << 2 + encoderRA << 1 + encoderRB;
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -142,9 +147,9 @@ int main(void)
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);                 // Servo 1
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);                 // Servo 2
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);                 // Servo 3
-  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);                 //無刷馬達
-  HAL_TIM_Base_Start_IT(&htim3);                            //開啟中斷
-  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pulse_BLDC); //無刷馬達下限轉速
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);                 // 無刷馬達
+  HAL_TIM_Base_Start_IT(&htim3);                            // 開啟中斷
+  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pulse_BLDC); // 無刷馬達下限轉速
   writeServo(90);
   brake();
   // unbrake();
@@ -168,7 +173,7 @@ int main(void)
 
     case 2:
       // 起步
-      setPower(power_BLDC);
+      setPower(9);
       HAL_Delay(2000);
       unbrake();
 
@@ -282,6 +287,15 @@ int main(void)
       value2 = Board_Get_ADCChannelValue(&hadc1, 2);
       value3 = Board_Get_ADCChannelValue(&hadc1, 3);
       HAL_Delay(500);
+      break;
+
+    case 6: // Encoder
+      //             CW --->
+      // A          ¯|___|¯¯¯¯|___|¯¯¯¯
+      // Interrupts  ^   ^    ^   ^
+      // B          ¯¯¯|___|¯¯¯¯¯|___|¯
+      // Interrupts    ^   ^     ^   ^
+      //             CCW <---
       break;
     }
 
@@ -601,9 +615,6 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET);
-
   /*Configure GPIO pin : PC13 */
   GPIO_InitStruct.Pin = GPIO_PIN_13;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -611,12 +622,21 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PB9 */
-  GPIO_InitStruct.Pin = GPIO_PIN_9;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  /*Configure GPIO pins : PB12 PB14 */
+  GPIO_InitStruct.Pin = GPIO_PIN_12 | GPIO_PIN_14;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB13 PB15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13 | GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
 /* USER CODE BEGIN 4 */
@@ -649,6 +669,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       sec++;
     }
   }
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  encoderRA = HAL_GPIO_ReadPin(GPIOB, GPIO_Pin_15);
+  encoderRB = HAL_GPIO_ReadPin(GPIOB, GPIO_Pin_13);
+  encoderid = encoderid << 2 & 0x0F + encoderRA << 1 + encoderRB;
+  position_encoderR = position_encoderR + encodercode[encoderid];
 }
 
 static void writeServo(float angle)
@@ -697,38 +725,6 @@ static void TLS(void) //微左轉
 static void TLL(void) //急左轉
 {
   writeServo(45);
-}
-
-static void TRSB(void) //後輪微右轉
-{
-  pulse_servo2 = 500 + 2000 * 105 / 180;
-  pulse_servo3 = pulse_servo2;
-  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
-  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-}
-
-static void TRLB(void) //後輪急右轉
-{
-  pulse_servo2 = 500 + 2000 * 120 / 180;
-  pulse_servo3 = pulse_servo2;
-  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
-  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-}
-
-static void TLSB(void) //後輪微左轉
-{
-  pulse_servo2 = 500 + 2000 * 75 / 180;
-  pulse_servo3 = pulse_servo2;
-  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
-  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-}
-
-static void TLLB(void) //後輪急左轉
-{
-  pulse_servo2 = 500 + 2000 * 60 / 180;
-  pulse_servo3 = pulse_servo2;
-  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
-  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
 }
 
 static void DRS(void) //微右飄
@@ -798,7 +794,6 @@ static void lineFollower(float operationTime, float power, int *tg)
   sec = 0;
   while (sec <= operationTime)
   {
-    // HAL_TIM_PeriodElapsedCallback(&htim3);
     statecode = 0;
     HAL_ADC_Start(&hadc1);
     HAL_ADC_PollForConversion(&hadc1, 1);
@@ -846,7 +841,6 @@ static void lineFollower(float operationTime, float power, int *tg)
       writeServo(90);
       while (tmp > 1) //變成白色之前狀態不變
       {
-        inloop = 1;
         statecode = 0;
         HAL_ADC_Start(&hadc1);
         HAL_ADC_PollForConversion(&hadc1, 1);
@@ -884,7 +878,6 @@ static void lineFollowerBackward(float operationTime, float power, int *tg)
   sec = 0;
   while (sec <= operationTime)
   {
-    // HAL_TIM_PeriodElapsedCallback(&htim3);
     statecode = 0;
     HAL_ADC_Start(&hadc1);
     HAL_ADC_PollForConversion(&hadc1, 1);
