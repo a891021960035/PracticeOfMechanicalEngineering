@@ -21,6 +21,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "math.h"
+#include "fonts.h"
+#include "ssd1306.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -29,8 +32,13 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+// #define _USE_MATH_DEFINES
 #define MIN_PULSE_LENGTH 20000 * 0.05 // Minimum pulse length : 1000µs
 #define MAX_PULSE_LENGTH 20000 * 0.1  // Maximum pulse length : 2000µs
+#define CYCLE 52
+#define R 5.5 / 2
+#define REARTRACK 14.06
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -38,7 +46,9 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
- ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef hadc1;
+
+I2C_HandleTypeDef hi2c1;
 
 SPI_HandleTypeDef hspi1;
 
@@ -47,7 +57,7 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
-// int i = 0;
+char buffer[5];
 int value0 = -1; // ADC value
 int value1 = -1; // ADC value
 int value2 = -1; // ADC value
@@ -62,13 +72,16 @@ int statecode = 0b0000;
 int encoderRid = 0b0000;
 int encoderLid = 0b0000;
 int encodercode[16] = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0};
-int tmp = 0;
+float disR;
+float disL;
+float steering_degree;
 int pulse_servo1 = 0; // Servo 1 PWM pulse
 int pulse_servo2 = 0; // Servo 2 PWM pulse
 int pulse_servo3 = 0; // Servo 3 PWM pulse
 int pulse_BLDC = 0;   // PWM pulse
 float degree_servo = 90;
 int mode = 0; // ESC mode
+int tmp = 0;
 int timestart = 0;
 int sec = 0;
 int ms = 0;
@@ -83,10 +96,14 @@ static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
 uint32_t Board_Get_ADCChannelValue(ADC_HandleTypeDef *hadc, uint32_t channel);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
+float distanceR();
+float distanceL();
+float steeringDegree(float angle);
 static void writeServo(float angle);
 static void setPower(float power);
 static void brake();
@@ -109,9 +126,9 @@ static void lineFollowerBackward(float operationTime, float power, int *tg);
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
+ * @brief  The application entry point.
+ * @retval int
+ */
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -150,18 +167,24 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   MX_SPI1_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+  SSD1306_Init();
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);                 // Servo 1
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);                 // Servo 2
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);                 // Servo 3
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);                 // 無刷馬達
   HAL_TIM_Base_Start_IT(&htim3);                            // 開啟中斷
   __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pulse_BLDC); // 無刷馬達下限轉速
+  itoa(trigger, buffer, 10);
+  SSD1306_GotoXY(0, 0);
+  SSD1306_Puts(buffer, &Font_16x26, 1);
+  SSD1306_UpdateScreen();
   writeServo(90);
   brake();
   // unbrake();
   HAL_Delay(3000);
-  mode = 3;
+  mode = 5;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -180,14 +203,24 @@ int main(void)
 
     case 2:
       // 起步
-      setPower(9);
+      setPower(6);
       HAL_Delay(2000);
       unbrake();
 
       // 第 1 段，轉彎至第一循跡線
-      writeServo(71.3);
+      writeServo(78.25); // 18.7-> 9.35 -> 14.035 -> 13.5 -> 11.5 -> 12 -> 11.75
       while (trigger < 3)
       {
+        if (trigger != tmp)
+        {
+          SSD1306_Clear();
+          tmp = trigger;
+          itoa(trigger, buffer, 10);
+          SSD1306_GotoXY(0, 0);
+          SSD1306_Puts(buffer, &Font_16x26, 1);
+          SSD1306_UpdateScreen();
+        }
+
         HAL_ADC_Start(&hadc1);
         HAL_ADC_PollForConversion(&hadc1, 1);
         value2 = Board_Get_ADCChannelValue(&hadc1, 2);
@@ -204,27 +237,23 @@ int main(void)
       }
 
       // 第 4 段，第一段循跡
-      lineFollower(3, 6, &trigger);
-      lineFollower(1, 16, &trigger);
+      lineFollower(3, 7, &trigger);
+      lineFollower(1, 23, &trigger);
 
       // 第 5 段，變換車道
-      setPower(13.5); // 根據電量調整
+      setPower(18); // 根據電量調整
       writeServo(60);
-      // HAL_Delay(950); //轉回黑線_往前
-      HAL_Delay(900); //轉回黑線_往後，900~830
-      // 轉彎法
-      setPower(13.5);
-      writeServo(90);
-      // 飄移法
-      // pulse_servo2 = 500 + 2000 * 55 / 180;
-      // pulse_servo3 = pulse_servo2;
-      // __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
-      // __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-      // writeServo(55);
-      // HAL_Delay(1500);
+      while (steeringDegree(30) != 30 * 3.14 / 180)
+      {
+      }
+      // HAL_Delay(900); //轉回黑線_往後，900~830
 
       // 等到黑線停下
       waitBlack(2);
+      setPower(13.5);
+      writeServo(90);
+
+      // 第 6 段，修正路徑
       // // 轉回黑線_往前
       // writeServo(138);
       // waitBlack(1);
@@ -232,8 +261,6 @@ int main(void)
       setPower(0);
       brake();
       HAL_Delay(800);
-      // pulse_servo2 = 500 + 2000 * 115 / 180;
-      // pulse_servo3 = 500 + 2000 * 120 / 180; // 130?
       writeServo(82);
       pulse_servo2 = 500 + 2000 * 115 / 180;
       pulse_servo3 = 500 + 2000 * 130 / 180; // 130?
@@ -246,11 +273,6 @@ int main(void)
 
       // 第 7 段，第二循跡線上坡
       trigger = 0;
-      // 向前轉正模式
-      // while (trigger < 2)
-      // {
-      //   lineFollower(100, 16.5, &trigger);
-      // }
       // 向後轉正模式
       while (trigger < 2)
       {
@@ -314,9 +336,9 @@ int main(void)
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
+ * @brief System Clock Configuration
+ * @retval None
+ */
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -324,8 +346,8 @@ void SystemClock_Config(void)
   RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
+   * in the RCC_OscInitTypeDef structure.
+   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
@@ -339,9 +361,8 @@ void SystemClock_Config(void)
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+   */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
@@ -360,10 +381,10 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief ADC1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief ADC1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_ADC1_Init(void)
 {
 
@@ -378,7 +399,7 @@ static void MX_ADC1_Init(void)
   /* USER CODE END ADC1_Init 1 */
 
   /** Common config
-  */
+   */
   hadc1.Instance = ADC1;
   hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
   hadc1.Init.ContinuousConvMode = DISABLE;
@@ -392,7 +413,7 @@ static void MX_ADC1_Init(void)
   }
 
   /** Configure Regular Channel
-  */
+   */
   sConfig.Channel = ADC_CHANNEL_1;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
@@ -438,14 +459,46 @@ static void MX_ADC1_Init(void)
     Error_Handler();
   }
   /* USER CODE END ADC1_Init 2 */
-
 }
 
 /**
-  * @brief SPI1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief I2C1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.ClockSpeed = 400000;
+  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
+}
+
+/**
+ * @brief SPI1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_SPI1_Init(void)
 {
 
@@ -476,14 +529,13 @@ static void MX_SPI1_Init(void)
   /* USER CODE BEGIN SPI1_Init 2 */
 
   /* USER CODE END SPI1_Init 2 */
-
 }
 
 /**
-  * @brief TIM1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief TIM1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_TIM1_Init(void)
 {
 
@@ -549,14 +601,13 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 2 */
   HAL_TIM_MspPostInit(&htim1);
-
 }
 
 /**
-  * @brief TIM2 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief TIM2 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_TIM2_Init(void)
 {
 
@@ -598,14 +649,13 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 2 */
   HAL_TIM_MspPostInit(&htim2);
-
 }
 
 /**
-  * @brief TIM3 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief TIM3 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_TIM3_Init(void)
 {
 
@@ -644,14 +694,13 @@ static void MX_TIM3_Init(void)
   /* USER CODE BEGIN TIM3_Init 2 */
 
   /* USER CODE END TIM3_Init 2 */
-
 }
 
 /**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief GPIO Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -662,7 +711,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pins : PB12 PB13 PB14 PB15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
+  GPIO_InitStruct.Pin = GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -670,7 +719,6 @@ static void MX_GPIO_Init(void)
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
-
 }
 
 /* USER CODE BEGIN 4 */
@@ -718,6 +766,24 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   position_encoderL = position_encoderL - encodercode[encoderLid];
 }
 
+float distanceR()
+{
+  disR = position_encoderR / CYCLE * R;
+  return disR;
+}
+
+float distanceL()
+{
+  disL = position_encoderL / CYCLE * R;
+  return disL;
+}
+
+float steeringDegree(float angle)
+{
+  int result = distanceL() / (1 / tan(angle) - 7.03);
+  return result;
+}
+
 static void writeServo(float angle)
 {
   pulse_servo1 = 500 + 2000 * angle / 180;
@@ -748,22 +814,22 @@ static void unbrake()
 
 static void TRS(void) //微右轉
 {
-  writeServo(112.5);
+  writeServo(101.25); // 112.5
 }
 
 static void TRL(void) //急右轉
 {
-  writeServo(135);
+  writeServo(112.5); // 135
 }
 
 static void TLS(void) //微左轉
 {
-  writeServo(67.5);
+  writeServo(78.75); // 67.5
 }
 
 static void TLL(void) //急左轉
 {
-  writeServo(45);
+  writeServo(67.5); // 45
 }
 
 static void DRS(void) //微右飄
@@ -952,9 +1018,9 @@ static void lineFollowerBackward(float operationTime, float power, int *tg)
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
@@ -966,14 +1032,14 @@ void Error_Handler(void)
   /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
