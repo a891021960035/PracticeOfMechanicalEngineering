@@ -21,6 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "ftoa.h"
 #include "math.h"
 #include "fonts.h"
 #include "ssd1306.h"
@@ -38,6 +39,7 @@
 #define CYCLE 52
 #define R 5.5 / 2
 #define REARTRACK 14.06
+#define WHEELBASE 17.75
 
 /* USER CODE END PD */
 
@@ -58,10 +60,10 @@ TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
 char buffer[5];
-int value0 = -1; // ADC value
-int value1 = -1; // ADC value
-int value2 = -1; // ADC value
-int value3 = -1; // ADC value
+int value0 = -1; // ADC value 最右
+int value1 = -1; // ADC value 右
+int value2 = -1; // ADC value 左
+int value3 = -1; // ADC value 最左
 int encoderRA = 0;
 int encoderRB = 0;
 int encoderLA = 0;
@@ -81,7 +83,7 @@ int pulse_servo3 = 0; // Servo 3 PWM pulse
 int pulse_BLDC = 0;   // PWM pulse
 float degree_servo = 90;
 int mode = 0; // ESC mode
-int tmp = 0;
+float tmp = 0;
 int timestart = 0;
 int sec = 0;
 int ms = 0;
@@ -155,7 +157,6 @@ int main(void)
 
   /* Configure the system clock */
   SystemClock_Config();
-
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
@@ -169,22 +170,22 @@ int main(void)
   MX_SPI1_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  SSD1306_Init();
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);                 // Servo 1
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);                 // Servo 2
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);                 // Servo 3
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);                 // 無刷馬達
   HAL_TIM_Base_Start_IT(&htim3);                            // 開啟中斷
   __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pulse_BLDC); // 無刷馬達下限轉速
-  itoa(trigger, buffer, 10);
-  SSD1306_GotoXY(0, 0);
-  SSD1306_Puts(buffer, &Font_16x26, 1);
-  SSD1306_UpdateScreen();
   writeServo(90);
   brake();
   // unbrake();
   HAL_Delay(3000);
-  mode = 5;
+  // HAL_NVIC_SystemReset();
+  SSD1306_Init();
+  mode = 2;
+  SSD1306_GotoXY(0, 0);
+  SSD1306_Puts("Start!", &Font_16x26, 1);
+  SSD1306_UpdateScreen();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -205,92 +206,109 @@ int main(void)
       // 起步
       setPower(6);
       HAL_Delay(2000);
-      unbrake();
 
       // 第 1 段，轉彎至第一循跡線
-      writeServo(78.25); // 18.7-> 9.35 -> 14.035 -> 13.5 -> 11.5 -> 12 -> 11.75
-      while (trigger < 3)
+      writeServo(77.5); // 18.7-> 9.35 -> 14.035 -> 13.5 -> 12.5
+      // while (trigger < 3)
+      // {
+      //   if (trigger != tmp)
+      //   {
+      //     tmp = trigger;
+      //     itoa(trigger, buffer, 10);
+      //     SSD1306_GotoXY(0, 0);
+      //     SSD1306_Puts(buffer, &Font_16x26, 1);
+      //     SSD1306_UpdateScreen();
+      //   }
+
+      //   HAL_ADC_Start(&hadc1);
+      //   HAL_ADC_PollForConversion(&hadc1, 1);
+      //   value1 = Board_Get_ADCChannelValue(&hadc1, 1);
+      //   if (value1 > 1000) //感測到黑色
+      //   {
+      //     while (value1 > 1000) //變成白色之前狀態不變
+      //     {
+      //       HAL_ADC_Start(&hadc1);
+      //       HAL_ADC_PollForConversion(&hadc1, 1);
+      //       value1 = Board_Get_ADCChannelValue(&hadc1, 1);
+      //     }
+      //     trigger += 1;
+      //   }
+      // }
+      position_encoderR = 0;
+      position_encoderL = 0;
+      unbrake();
+      SSD1306_Clear();
+      while (steeringDegree(90 - 77.5) < 90)
       {
-        if (trigger != tmp)
+        if (steeringDegree(90 - 77.5) != tmp)
         {
-          SSD1306_Clear();
-          tmp = trigger;
-          itoa(trigger, buffer, 10);
+          tmp = steeringDegree(90 - 77.5);
+          ftoa(steeringDegree(90 - 77.5), buffer, 2);
           SSD1306_GotoXY(0, 0);
           SSD1306_Puts(buffer, &Font_16x26, 1);
           SSD1306_UpdateScreen();
         }
-
-        HAL_ADC_Start(&hadc1);
-        HAL_ADC_PollForConversion(&hadc1, 1);
-        value2 = Board_Get_ADCChannelValue(&hadc1, 2);
-        if (value2 > 1000) //感測到黑色
-        {
-          while (value2 > 1000) //變成白色之前狀態不變
-          {
-            HAL_ADC_Start(&hadc1);
-            HAL_ADC_PollForConversion(&hadc1, 1);
-            value2 = Board_Get_ADCChannelValue(&hadc1, 2);
-          }
-          trigger += 1;
-        }
       }
+      ftoa(steeringDegree(90 - 77.5), buffer, 2);
+      SSD1306_GotoXY(0, 0);
+      SSD1306_Puts(buffer, &Font_16x26, 1);
+      SSD1306_UpdateScreen();
 
       // 第 4 段，第一段循跡
-      lineFollower(3, 7, &trigger);
-      lineFollower(1, 23, &trigger);
+      lineFollower(3, 10, &trigger);
+      lineFollower(1, 25, &trigger);
 
-      // 第 5 段，變換車道
-      setPower(18); // 根據電量調整
-      writeServo(60);
-      while (steeringDegree(30) != 30 * 3.14 / 180)
-      {
-      }
-      // HAL_Delay(900); //轉回黑線_往後，900~830
+      // // 第 5 段，變換車道
+      // setPower(18); // 根據電量調整
+      // writeServo(60);
+      // while (steeringDegree(30) != 30 * 3.14 / 180)
+      // {
+      // }
+      // // HAL_Delay(900); //轉回黑線_往後，900~830
 
-      // 等到黑線停下
-      waitBlack(2);
-      setPower(13.5);
-      writeServo(90);
+      // // 等到黑線停下
+      // waitBlack(2);
+      // setPower(13.5);
+      // writeServo(90);
 
-      // 第 6 段，修正路徑
-      // // 轉回黑線_往前
-      // writeServo(138);
-      // waitBlack(1);
-      // 轉回黑線_往後
-      setPower(0);
-      brake();
-      HAL_Delay(800);
-      writeServo(82);
-      pulse_servo2 = 500 + 2000 * 115 / 180;
-      pulse_servo3 = 500 + 2000 * 130 / 180; // 130?
-      __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
-      __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-      waitBlack(1);
-      brake();
-      HAL_Delay(500);
-      unbrake();
-
-      // 第 7 段，第二循跡線上坡
-      trigger = 0;
-      // 向後轉正模式
-      while (trigger < 2)
-      {
-        lineFollower(100, 17.5, &trigger);
-      }
-      writeServo(90);
-      HAL_Delay(300);
-
-      // 第 8 段，第一停止區
-      setPower(0);
-      brake();
-      HAL_Delay(3500);
-      unbrake();
-
-      // 第 9 段，循跡至第二停止區
-      lineFollowerBackward(5, 6.3, &trigger);
-      lineFollowerBackward(4, 0, &trigger);
+      // // 第 6 段，修正路徑
+      // // // 轉回黑線_往前
+      // // writeServo(138);
+      // // waitBlack(1);
+      // // 轉回黑線_往後
+      // setPower(0);
       // brake();
+      // HAL_Delay(800);
+      // writeServo(82);
+      // pulse_servo2 = 500 + 2000 * 115 / 180;
+      // pulse_servo3 = 500 + 2000 * 130 / 180; // 130?
+      // __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
+      // __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
+      // waitBlack(1);
+      // brake();
+      // HAL_Delay(500);
+      // unbrake();
+
+      // // 第 7 段，第二循跡線上坡
+      // trigger = 0;
+      // // 向後轉正模式
+      // while (trigger < 2)
+      // {
+      //   lineFollower(100, 17.5, &trigger);
+      // }
+      // writeServo(90);
+      // HAL_Delay(300);
+
+      // // 第 8 段，第一停止區
+      // setPower(0);
+      // brake();
+      // HAL_Delay(3500);
+      // unbrake();
+
+      // // 第 9 段，循跡至第二停止區
+      // lineFollowerBackward(5, 6.3, &trigger);
+      // lineFollowerBackward(4, 0, &trigger);
+      brake();
       mode = 0;
       break;
 
@@ -774,13 +792,13 @@ float distanceR()
 
 float distanceL()
 {
-  disL = position_encoderL / CYCLE * R;
+  disL = position_encoderL / CYCLE * 2 * M_PI * R;
   return disL;
 }
 
 float steeringDegree(float angle)
 {
-  int result = distanceL() / (1 / tan(angle) - 7.03);
+  float result = (distanceL() / (WHEELBASE / tan(angle * M_PI / 180) - 7.03)) / M_PI * 180;
   return result;
 }
 
@@ -896,13 +914,13 @@ static void lineFollower(float operationTime, float power, int *tg)
     value3 = Board_Get_ADCChannelValue(&hadc1, 3);
 
     if (value0 > 1000)
-      statecode = statecode | 0b1000; // 8
+      statecode = statecode | 0b0001; // 8
     if (value1 > 1000)
-      statecode = statecode | 0b0100; // 4
+      statecode = statecode | 0b0010; // 4
     if (value2 > 1000)
-      statecode = statecode | 0b0010; // 2
+      statecode = statecode | 0b0100; // 2
     if (value3 > 1000)
-      statecode = statecode | 0b0001; // 1
+      statecode = statecode | 0b1000; // 1
 
     tmp = (statecode & 0b1000) >> 3;
     tmp += (statecode & 0b0100) >> 2;
