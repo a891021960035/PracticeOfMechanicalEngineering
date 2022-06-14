@@ -36,7 +36,8 @@
 // #define _USE_MATH_DEFINES
 #define MIN_PULSE_LENGTH 20000 * 0.05 // Minimum pulse length : 1000µs
 #define MAX_PULSE_LENGTH 20000 * 0.1  // Maximum pulse length : 2000µs
-#define CYCLE 52
+// #define CYCLE 46
+#define UNIT_DISTANCE 102 / 155
 #define R 5.5 / 2
 #define REARTRACK 14.06
 #define WHEELBASE 17.75
@@ -73,7 +74,8 @@ int position_encoderL = 0;
 int statecode = 0b0000;
 int encoderRid = 0b0000;
 int encoderLid = 0b0000;
-int encodercode[16] = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0};
+// int encodercode[16] = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0};
+int encodercode[16] = {0, 0, 1, -1, 0, 0, 1, -1, -1, 1, 0, 0, -1, 1, 0, 0};
 float disR;
 float disL;
 float steering_degree;
@@ -105,7 +107,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 float distanceR();
 float distanceL();
-float steeringDegree(float angle);
+float steeringDegree(float angle, int orientation);
 static void writeServo(float angle);
 static void setPower(float power);
 static void brake();
@@ -147,16 +149,17 @@ int main(void)
   pulse_servo2 = MIN_PULSE_LENGTH;
   pulse_servo3 = MIN_PULSE_LENGTH;
   pulse_BLDC = MIN_PULSE_LENGTH;
-  encoderRA = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15);
-  encoderRB = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14);
-  encoderRid = (encoderRA << 3) + (encoderRB << 2) + (encoderRA << 1) + encoderRB;
-  encoderLA = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13);
-  encoderLB = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12);
-  encoderLid = (encoderLA << 3) + (encoderLB << 2) + (encoderLA << 1) + encoderLB;
+  // encoderRA = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15);
+  // encoderRB = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14);
+  // encoderRid = (encoderRA << 3) + (encoderRB << 2) + (encoderRA << 1) + encoderRB;
+  // encoderLA = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13);
+  // encoderLB = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12);
+  // encoderLid = (encoderLA << 3) + (encoderLB << 2) + (encoderLA << 1) + encoderLB;
   /* USER CODE END Init */
 
   /* Configure the system clock */
   SystemClock_Config();
+
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
@@ -183,8 +186,12 @@ int main(void)
   // HAL_NVIC_SystemReset();
   SSD1306_Init();
   mode = 2;
-  SSD1306_GotoXY(0, 0);
-  SSD1306_Puts("Start!", &Font_16x26, 1);
+  // SSD1306_GotoXY(0, 0);
+  // SSD1306_Puts("Start!", &Font_16x26, 1);
+  SSD1306_GotoXY(10, 10);                // goto 10, 10
+  SSD1306_Puts("HELLO", &Font_11x18, 1); // print Hello
+  SSD1306_GotoXY(10, 30);
+  SSD1306_Puts("WORLD !!", &Font_11x18, 1);
   SSD1306_UpdateScreen();
   /* USER CODE END 2 */
 
@@ -208,74 +215,81 @@ int main(void)
       HAL_Delay(2000);
 
       // 第 1 段，轉彎至第一循跡線
-      writeServo(77.5); // 18.7-> 9.35 -> 14.035 -> 13.5 -> 12.5
-      // while (trigger < 3)
-      // {
-      //   if (trigger != tmp)
-      //   {
-      //     tmp = trigger;
-      //     itoa(trigger, buffer, 10);
-      //     SSD1306_GotoXY(0, 0);
-      //     SSD1306_Puts(buffer, &Font_16x26, 1);
-      //     SSD1306_UpdateScreen();
-      //   }
-
-      //   HAL_ADC_Start(&hadc1);
-      //   HAL_ADC_PollForConversion(&hadc1, 1);
-      //   value1 = Board_Get_ADCChannelValue(&hadc1, 1);
-      //   if (value1 > 1000) //感測到黑色
-      //   {
-      //     while (value1 > 1000) //變成白色之前狀態不變
-      //     {
-      //       HAL_ADC_Start(&hadc1);
-      //       HAL_ADC_PollForConversion(&hadc1, 1);
-      //       value1 = Board_Get_ADCChannelValue(&hadc1, 1);
-      //     }
-      //     trigger += 1;
-      //   }
-      // }
       position_encoderR = 0;
       position_encoderL = 0;
+      degree_servo = 77.5;
+      writeServo(degree_servo); // 18.7-> 9.35 -> 14.035 -> 13.5 -> 12.5
       unbrake();
       SSD1306_Clear();
-      while (steeringDegree(90 - 77.5) < 90)
+      while (steeringDegree(degree_servo, 1) < 90)
       {
-        if (steeringDegree(90 - 77.5) != tmp)
-        {
-          tmp = steeringDegree(90 - 77.5);
-          ftoa(steeringDegree(90 - 77.5), buffer, 2);
-          SSD1306_GotoXY(0, 0);
-          SSD1306_Puts(buffer, &Font_16x26, 1);
-          SSD1306_UpdateScreen();
-        }
+        ftoa(steeringDegree(degree_servo, 1), buffer, 2);
+        SSD1306_GotoXY(0, 0);
+        SSD1306_Puts(buffer, &Font_11x18, 1);
+        SSD1306_UpdateScreen();
       }
-      ftoa(steeringDegree(90 - 77.5), buffer, 2);
+      SSD1306_Clear();
+      ftoa(steeringDegree(degree_servo, 1), buffer, 2);
       SSD1306_GotoXY(0, 0);
       SSD1306_Puts(buffer, &Font_16x26, 1);
       SSD1306_UpdateScreen();
 
       // 第 4 段，第一段循跡
-      lineFollower(3, 10, &trigger);
-      lineFollower(1, 25, &trigger);
+      lineFollower(4, 6, &trigger);
+      trigger = 0;
+      while (trigger < 1)
+      {
+        lineFollower(100, 25, &trigger);
+      }
 
       // // 第 5 段，變換車道
-      // setPower(18); // 根據電量調整
-      // writeServo(60);
-      // while (steeringDegree(30) != 30 * 3.14 / 180)
+      // setPower(20); // 小電池：20 大電池 24
+      // position_encoderR = 0;
+      degree_servo = 60;
+      writeServo(degree_servo);
+      // SSD1306_Clear();
+      // while (steeringDegree(degree_servo, 1) < 35)
       // {
       // }
-      // // HAL_Delay(900); //轉回黑線_往後，900~830
+      // SSD1306_Clear();
+      // ftoa(steeringDegree(degree_servo, 1), buffer, 2);
+      // SSD1306_GotoXY(0, 0);
+      // SSD1306_Puts(buffer, &Font_16x26, 1);
+      // SSD1306_UpdateScreen();
 
       // // 等到黑線停下
-      // waitBlack(2);
-      // setPower(13.5);
-      // writeServo(90);
+      // for (int i = 60; i <= 90; i += 2)
+      // {
+      //   writeServo(i);
+      // }
+      pulse_servo2 = 500 + 2000 * degree_servo / 180;
+      pulse_servo3 = 500 + 2000 * degree_servo / 180; // 130?
+      __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
+      __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
+      setPower(30); // 大顆電池 25 度：30 小顆電池 25 度：30
+      waitBlack(1);
 
-      // // 第 6 段，修正路徑
-      // // // 轉回黑線_往前
-      // // writeServo(138);
-      // // waitBlack(1);
-      // // 轉回黑線_往後
+      // 第 6 段，修正路徑
+      // 轉回黑線_往前
+      // writeServo(138);
+      // waitBlack(1);
+      // position_encoderR = 0;
+      // degree_servo = 120;
+      // for (int i = 90; i <= degree_servo; i += 2)
+      // {
+      //   writeServo(i);
+      // }
+      // setPower(25); // 小電池：25 大電池 30
+      // SSD1306_Clear();
+      // while (steeringDegree(degree_servo, 0) < 35)
+      // {
+      // }
+      // SSD1306_Clear();
+      // ftoa(steeringDegree(degree_servo, 0), buffer, 2);
+      // SSD1306_GotoXY(0, 0);
+      // SSD1306_Puts(buffer, &Font_16x26, 1);
+      // SSD1306_UpdateScreen();
+      // 轉回黑線_往後
       // setPower(0);
       // brake();
       // HAL_Delay(800);
@@ -313,11 +327,7 @@ int main(void)
       break;
 
     case 3: // 伺服測試
-      pulse_servo2 = 500 + 2000 * 90 / 180;
-      pulse_servo3 = pulse_servo2;
-      __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
-      __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-      writeServo(90);
+      writeServo(120);
       break;
 
     case 4: // 無刷測試
@@ -728,8 +738,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  /*Configure GPIO pins : PB12 PB13 PB14 PB15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
+  /*Configure GPIO pin : PB15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -773,32 +783,52 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  encoderRA = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15);
-  encoderRB = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14);
-  encoderRid = ((encoderRid << 2) & 0x0F) + (encoderRA << 1) + encoderRB;
-  position_encoderR = position_encoderR + encodercode[encoderRid];
+  // if (GPIO_Pin == GPIO_PIN_15)
+  // {
+  //   encoderRA = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15);
+  //   encoderRB = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14);
+  //   encoderRid = ((encoderRid << 2) & 0b1111) + (encoderRA << 1) + encoderRB;
+  //   position_encoderR = position_encoderR + encodercode[encoderRid];
+  // }
 
-  encoderLA = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13);
-  encoderLB = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12);
-  encoderLid = ((encoderLid << 2) & 0x0F) + (encoderLA << 1) + encoderLB;
-  position_encoderL = position_encoderL - encodercode[encoderLid];
+  // if (GPIO_Pin == GPIO_PIN_13)
+  // {
+  //   encoderLA = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13);
+  //   encoderLB = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12);
+  //   encoderLid = ((encoderLid << 2) & 0x0F) + (encoderLA << 1) + encoderLB;
+  //   position_encoderL = position_encoderL - encodercode[encoderLid];
+  // }
+
+  position_encoderR++;
 }
 
 float distanceR()
 {
-  disR = position_encoderR / CYCLE * R;
+  // disR = position_encoderR / CYCLE * 2 * M_PI * R;
+  disR = position_encoderR * UNIT_DISTANCE;
   return disR;
 }
 
 float distanceL()
 {
-  disL = position_encoderL / CYCLE * 2 * M_PI * R;
+  // disL = position_encoderL / CYCLE * 2 * M_PI * R;
   return disL;
 }
 
-float steeringDegree(float angle)
+float steeringDegree(float angle, int orientation)
 {
-  float result = (distanceL() / (WHEELBASE / tan(angle * M_PI / 180) - 7.03)) / M_PI * 180;
+  float result;
+  if (orientation == 1) //左轉
+  {
+    angle = 90 - angle + 5;
+    result = (distanceR() / (WHEELBASE / tan(angle * M_PI / 180) + 7.03)) / M_PI * 180;
+  }
+  if (orientation == 0) //右
+  {
+    angle = angle - 90;
+    result = (distanceR() / (WHEELBASE / tan(angle * M_PI / 180) - 7.03)) / M_PI * 180;
+  }
+
   return result;
 }
 
