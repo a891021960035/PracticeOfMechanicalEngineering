@@ -65,19 +65,9 @@ int value0 = -1; // ADC value 最右
 int value1 = -1; // ADC value 右
 int value2 = -1; // ADC value 左
 int value3 = -1; // ADC value 最左
-int encoderRA = 0;
-int encoderRB = 0;
-int encoderLA = 0;
-int encoderLB = 0;
 int position_encoderR = 0;
-int position_encoderL = 0;
 int statecode = 0b0000;
-int encoderRid = 0b0000;
-int encoderLid = 0b0000;
-// int encodercode[16] = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0};
-int encodercode[16] = {0, 0, 1, -1, 0, 0, 1, -1, -1, 1, 0, 0, -1, 1, 0, 0};
 float disR;
-float disL;
 float steering_degree;
 int pulse_servo1 = 0; // Servo 1 PWM pulse
 int pulse_servo2 = 0; // Servo 2 PWM pulse
@@ -106,7 +96,6 @@ uint32_t Board_Get_ADCChannelValue(ADC_HandleTypeDef *hadc, uint32_t channel);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 float distanceR();
-float distanceL();
 float steeringDegree(float angle, int orientation);
 static void writeServo(float angle);
 static void setPower(float power);
@@ -149,12 +138,6 @@ int main(void)
   pulse_servo2 = MIN_PULSE_LENGTH;
   pulse_servo3 = MIN_PULSE_LENGTH;
   pulse_BLDC = MIN_PULSE_LENGTH;
-  // encoderRA = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15);
-  // encoderRB = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14);
-  // encoderRid = (encoderRA << 3) + (encoderRB << 2) + (encoderRA << 1) + encoderRB;
-  // encoderLA = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13);
-  // encoderLB = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12);
-  // encoderLid = (encoderLA << 3) + (encoderLB << 2) + (encoderLA << 1) + encoderLB;
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -183,11 +166,8 @@ int main(void)
   brake();
   // unbrake();
   HAL_Delay(3000);
-  // HAL_NVIC_SystemReset();
   SSD1306_Init();
   mode = 2;
-  // SSD1306_GotoXY(0, 0);
-  // SSD1306_Puts("Start!", &Font_16x26, 1);
   SSD1306_GotoXY(10, 10);                // goto 10, 10
   SSD1306_Puts("HELLO", &Font_11x18, 1); // print Hello
   SSD1306_GotoXY(10, 30);
@@ -216,7 +196,6 @@ int main(void)
 
       // 第 1 段，轉彎至第一循跡線
       position_encoderR = 0;
-      position_encoderL = 0;
       degree_servo = 77.5;
       writeServo(degree_servo); // 18.7-> 9.35 -> 14.035 -> 13.5 -> 12.5
       unbrake();
@@ -243,78 +222,30 @@ int main(void)
       }
 
       // // 第 5 段，變換車道
-      // setPower(20); // 小電池：20 大電池 24
-      // position_encoderR = 0;
       degree_servo = 60;
       writeServo(degree_servo);
-      // SSD1306_Clear();
-      // while (steeringDegree(degree_servo, 1) < 35)
-      // {
-      // }
-      // SSD1306_Clear();
-      // ftoa(steeringDegree(degree_servo, 1), buffer, 2);
-      // SSD1306_GotoXY(0, 0);
-      // SSD1306_Puts(buffer, &Font_16x26, 1);
-      // SSD1306_UpdateScreen();
-
-      // // 等到黑線停下
-      // for (int i = 60; i <= 90; i += 2)
-      // {
-      //   writeServo(i);
-      // }
       pulse_servo2 = 500 + 2000 * degree_servo / 180;
       pulse_servo3 = 500 + 2000 * degree_servo / 180; // 130?
       __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
       __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
       setPower(30); // 大顆電池 25 度：30 小顆電池 25 度：30
-      waitBlack(1);
+      waitBlack(2);
+      brake();
 
       // 第 6 段，修正路徑
-      // 轉回黑線_往前
-      // writeServo(138);
-      // waitBlack(1);
-      // position_encoderR = 0;
-      // degree_servo = 120;
-      // for (int i = 90; i <= degree_servo; i += 2)
-      // {
-      //   writeServo(i);
-      // }
-      // setPower(25); // 小電池：25 大電池 30
-      // SSD1306_Clear();
-      // while (steeringDegree(degree_servo, 0) < 35)
-      // {
-      // }
-      // SSD1306_Clear();
-      // ftoa(steeringDegree(degree_servo, 0), buffer, 2);
-      // SSD1306_GotoXY(0, 0);
-      // SSD1306_Puts(buffer, &Font_16x26, 1);
-      // SSD1306_UpdateScreen();
-      // 轉回黑線_往後
-      // setPower(0);
-      // brake();
-      // HAL_Delay(800);
-      // writeServo(82);
-      // pulse_servo2 = 500 + 2000 * 115 / 180;
-      // pulse_servo3 = 500 + 2000 * 130 / 180; // 130?
-      // __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
-      // __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-      // waitBlack(1);
-      // brake();
-      // HAL_Delay(500);
-      // unbrake();
+      // 第 7 段，第二循跡線上坡
+      writeServo(90);
+      trigger = 0;
+      unbrake();
+      // 向後轉正模式
+      while (trigger < 2)
+      {
+        lineFollower(100, 27, &trigger);
+      }
+      HAL_Delay(300);
 
-      // // 第 7 段，第二循跡線上坡
-      // trigger = 0;
-      // // 向後轉正模式
-      // while (trigger < 2)
-      // {
-      //   lineFollower(100, 17.5, &trigger);
-      // }
-      // writeServo(90);
-      // HAL_Delay(300);
-
-      // // 第 8 段，第一停止區
-      // setPower(0);
+      // 第 8 段，第一停止區
+      setPower(0);
       // brake();
       // HAL_Delay(3500);
       // unbrake();
@@ -807,12 +738,6 @@ float distanceR()
   // disR = position_encoderR / CYCLE * 2 * M_PI * R;
   disR = position_encoderR * UNIT_DISTANCE;
   return disR;
-}
-
-float distanceL()
-{
-  // disL = position_encoderL / CYCLE * 2 * M_PI * R;
-  return disL;
 }
 
 float steeringDegree(float angle, int orientation)
