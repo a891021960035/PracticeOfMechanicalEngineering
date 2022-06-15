@@ -202,10 +202,6 @@ int main(void)
       SSD1306_Clear();
       while (steeringDegree(degree_servo, 1) < 90)
       {
-        ftoa(steeringDegree(degree_servo, 1), buffer, 2);
-        SSD1306_GotoXY(0, 0);
-        SSD1306_Puts(buffer, &Font_11x18, 1);
-        SSD1306_UpdateScreen();
       }
       SSD1306_Clear();
       ftoa(steeringDegree(degree_servo, 1), buffer, 2);
@@ -228,31 +224,49 @@ int main(void)
       pulse_servo3 = 500 + 2000 * degree_servo / 180; // 130?
       __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
       __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-      setPower(30); // 大顆電池 25 度：30 小顆電池 25 度：30
+      setPower(24.5); // 大顆電池 20 度：28 , 小顆電池 25 度：30 20 度：24.5
+      HAL_Delay(500);
       waitBlack(2);
-      brake();
 
       // 第 6 段，修正路徑
       // 第 7 段，第二循跡線上坡
       writeServo(90);
       trigger = 0;
       unbrake();
-      // 向後轉正模式
+      SSD1306_Clear();
       while (trigger < 2)
       {
-        lineFollower(100, 27, &trigger);
+        lineFollower(100, 29, &trigger); // 大顆電池 20 度：31 小顆電池 25 度： 20 度：29
       }
-      HAL_Delay(300);
-
+      position_encoderR = 0;
+      SSD1306_Clear();
+      while (position_encoderR < 30) //(20 / (102 / 155))？？？
+      {
+        itoa(position_encoderR, buffer, 10);
+        SSD1306_GotoXY(0, 0);
+        SSD1306_Puts(buffer, &Font_11x18, 1);
+        SSD1306_UpdateScreen();
+      }
       // 第 8 段，第一停止區
       setPower(0);
-      // brake();
-      // HAL_Delay(3500);
-      // unbrake();
+      brake();
+      HAL_Delay(1000);
+      setPower(21); // 大電池 20度：23，小電池 20度：20
+      HAL_Delay(2500);
 
-      // // 第 9 段，循跡至第二停止區
-      // lineFollowerBackward(5, 6.3, &trigger);
-      // lineFollowerBackward(4, 0, &trigger);
+      // 第 9 段，循跡至第二停止區
+      position_encoderR = 0;
+      unbrake();
+      while (position_encoderR < 170) // 220 /（102 / 155）
+      {
+        lineFollowerBackward(100, 22, &trigger); // 大電池 20度：23，小電池 20度：22
+        itoa(position_encoderR, buffer, 10);
+        SSD1306_GotoXY(0, 0);
+        SSD1306_Puts(buffer, &Font_11x18, 1);
+        SSD1306_UpdateScreen();
+      }
+      setPower(0);
+      HAL_Delay(1500);
       brake();
       mode = 0;
       break;
@@ -714,22 +728,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  // if (GPIO_Pin == GPIO_PIN_15)
-  // {
-  //   encoderRA = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15);
-  //   encoderRB = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14);
-  //   encoderRid = ((encoderRid << 2) & 0b1111) + (encoderRA << 1) + encoderRB;
-  //   position_encoderR = position_encoderR + encodercode[encoderRid];
-  // }
-
-  // if (GPIO_Pin == GPIO_PIN_13)
-  // {
-  //   encoderLA = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13);
-  //   encoderLB = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12);
-  //   encoderLid = ((encoderLid << 2) & 0x0F) + (encoderLA << 1) + encoderLB;
-  //   position_encoderL = position_encoderL - encodercode[encoderLid];
-  // }
-
   position_encoderR++;
 }
 
@@ -771,8 +769,8 @@ static void setPower(float power)
 
 static void brake()
 {
-  pulse_servo2 = 500 + 2000 * (180 - 60) / 180;
-  pulse_servo3 = 500 + 2000 * 60 / 180;
+  pulse_servo2 = 500 + 2000 * (180 - 45) / 180;
+  pulse_servo3 = 500 + 2000 * 45 / 180;
   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
 }
@@ -807,6 +805,15 @@ static void TLL(void) //急左轉
 
 static void DRS(void) //微右飄
 {
+  pulse_servo2 = 500 + 2000 * 92.5 / 180;
+  pulse_servo3 = pulse_servo2;
+  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
+  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
+  writeServo(92.5);
+}
+
+static void DRL(void) //急右飄
+{
   pulse_servo2 = 500 + 2000 * 100 / 180;
   pulse_servo3 = pulse_servo2;
   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
@@ -814,31 +821,22 @@ static void DRS(void) //微右飄
   writeServo(100);
 }
 
-static void DRL(void) //急右飄
+static void DLS(void) //微左飄
 {
-  pulse_servo2 = 500 + 2000 * 110 / 180;
+  pulse_servo2 = 500 + 2000 * 87.5 / 180;
   pulse_servo3 = pulse_servo2;
   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-  writeServo(110);
+  writeServo(87.5);
 }
 
-static void DLS(void) //微左飄
+static void DLL(void) //急左飄
 {
   pulse_servo2 = 500 + 2000 * 80 / 180;
   pulse_servo3 = pulse_servo2;
   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
   writeServo(80);
-}
-
-static void DLL(void) //急左飄
-{
-  pulse_servo2 = 500 + 2000 * 70 / 180;
-  pulse_servo3 = pulse_servo2;
-  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
-  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-  writeServo(70);
 }
 
 static void waitBlack(int ch)
