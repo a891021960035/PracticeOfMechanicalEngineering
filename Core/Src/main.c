@@ -109,7 +109,7 @@ static void DRS(); //微右飄
 static void DRL(); //急右飄
 static void DLS(); //微左飄
 static void DLL(); //急左飄
-static void waitBlack(int ch);
+static void waitBlack(int ch, float pw);
 static void lineFollower(float operationTime, float power, int *tg);
 static void lineFollowerBackward(float operationTime, float power, int *tg);
 /* USER CODE END PFP */
@@ -125,7 +125,6 @@ static void lineFollowerBackward(float operationTime, float power, int *tg);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -144,7 +143,6 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -221,12 +219,12 @@ int main(void)
       degree_servo = 60;
       writeServo(degree_servo);
       pulse_servo2 = 500 + 2000 * degree_servo / 180;
-      pulse_servo3 = 500 + 2000 * degree_servo / 180; // 130?
+      pulse_servo3 = 500 + 2000 * degree_servo / 180;
       __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
       __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-      setPower(24.5); // 大顆電池 20 度：28 , 小顆電池 25 度：30 20 度：24.5
+      setPower(24); // 大顆電池 20度：28｜小顆電池 25度：30 20度：24.5｜加入調速-> 基準值24，上限30
       HAL_Delay(500);
-      waitBlack(2);
+      waitBlack(2, 24);
 
       // 第 6 段，修正路徑
       // 第 7 段，第二循跡線上坡
@@ -839,8 +837,12 @@ static void DLL(void) //急左飄
   writeServo(75);
 }
 
-static void waitBlack(int ch)
+static void waitBlack(int ch, float pw)
 {
+  int tmp_time = sec;
+  int tmp_dis = distanceR();
+  int i = 1; // correct times
+  int j = 1; // correct times
   HAL_ADC_Start(&hadc1);
   HAL_ADC_PollForConversion(&hadc1, 1);
   int value = Board_Get_ADCChannelValue(&hadc1, ch);
@@ -849,6 +851,25 @@ static void waitBlack(int ch)
     HAL_ADC_Start(&hadc1);
     HAL_ADC_PollForConversion(&hadc1, 1);
     value = Board_Get_ADCChannelValue(&hadc1, ch);
+    if (sec - tmp_time > 1)
+    {
+      tmp_time = sec;
+      if (distanceR() - tmp_dis < 5)
+      {
+        tmp_dis = distanceR();
+        if (pw + 0.5 * i < 30)
+        {
+          setPower(pw + 0.5 * i);
+          i++;
+        }
+      }
+      if (distanceR() - tmp_dis > 18)
+      {
+        tmp_dis = distanceR();
+        setPower(pw - 0.5 * j);
+        j++;
+      }
+    }
   }
 }
 
