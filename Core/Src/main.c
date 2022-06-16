@@ -305,7 +305,7 @@ int main(void)
       j = 1; // correct times
       position_encoderR = 0;
       SSD1306_Clear();
-      while (position_encoderR < 225 && sec < 6)
+      while (position_encoderR < 225 || sec < 6)
       {
         lineFollowerBackward(100, 22.5, &trigger); // 大電池 20度：22.5 25度：31|小電池 20度：22 25度：27.5
         itoa(position_encoderR, buffer, 10);
@@ -328,6 +328,7 @@ int main(void)
           tmp_dis = distanceR();
         }
       }
+      // lineFollowerBackward(3, 20, &trigger); // 大電池 20度：22.5 25度：31|小電池 20度：22 25度：27.5
       position_encoderR = 0;
       SSD1306_Clear();
       while (position_encoderR < 40)
@@ -953,7 +954,10 @@ static void waitBlack(int ch, float pw)
 static void lineFollower(float operationTime, float power, int *tg)
 {
   setPower(power);
-  sec = 0;
+  if (operationTime != 100)
+  {
+    sec = 0;
+  }
   while (sec <= operationTime)
   {
     statecode = 0;
@@ -1037,7 +1041,10 @@ static void lineFollower(float operationTime, float power, int *tg)
 static void lineFollowerBackward(float operationTime, float power, int *tg)
 {
   setPower(power);
-  sec = 0;
+  if (operationTime != 100)
+  {
+    sec = 0;
+  }
   while (sec <= operationTime)
   {
     statecode = 0;
