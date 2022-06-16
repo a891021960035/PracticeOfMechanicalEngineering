@@ -216,7 +216,7 @@ int main(void)
       trigger = 0;
       while (trigger < 1)
       {
-        lineFollower(100, 32, &trigger); // 20度：25｜25度 小電池：31 大電池：32
+        lineFollower(100, 25, &trigger); // 20度：25｜25度 小電池：31 大電池：32
       }
 
       // // 第 5 段，變換車道
@@ -226,9 +226,9 @@ int main(void)
       pulse_servo3 = 500 + 2000 * degree_servo / 180;
       __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
       __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-      setPower(37); // 大顆電池 20度：28.5 25度：37｜小顆電池 20度：24 25度：32.5｜加入調速-> 基準值24，上限45
+      setPower(28.5); // 大顆電池 20度：28.5 25度：37｜小顆電池 20度：24 25度：32.5｜加入調速-> 基準值24，上限45
       HAL_Delay(500);
-      waitBlack(2, 37); // 大顆電池 20度：28.5 25度：37｜小顆電池 20度：24 25度：32.5｜加入調速-> 基準值24，上限45
+      waitBlack(2, 28.5); // 大顆電池 20度：28.5 25度：37｜小顆電池 20度：24 25度：32.5｜加入調速-> 基準值24，上限45
 
       // 第 6 段，修正路徑 第 7 段，第二循跡線上坡
       writeServo(90);
@@ -241,24 +241,28 @@ int main(void)
       SSD1306_Clear();
       while (trigger < 2)
       {
-        lineFollower(100, 38, &trigger); // 大顆電池 20度：31 25度：38|小顆電池 20度：29 25度：35
+        lineFollower(100, 31, &trigger); // 大顆電池 20度：31 25度：38|小顆電池 20度：29 25度：35
         if (sec - tmp_time > 1)
         {
           tmp_time = sec;
           if (distanceR() - tmp_dis < 12)
           {
-            setPower(38 + 2 * i); // 大顆電池 20度：31 25度：38|小顆電池 20度：29 25度：35
+            setPower(31 + 2 * i); // 大顆電池 20度：31 25度：38|小顆電池 20度：29 25度：35
             i++;
           }
           if (distanceR() - tmp_dis > 30)
           {
-            setPower(38 - 0.01 * j); // 大顆電池 20度：31 25度：38|小顆電池 20度：29 25度：35
+            setPower(31 - 0.01 * j); // 大顆電池 20度：31 25度：38|小顆電池 20度：29 25度：35
             j++;
           }
           tmp_dis = distanceR();
         }
       }
       position_encoderR = 0;
+      tmp_time = sec;
+      tmp_dis = distanceR();
+      i = 1; // correct times
+      j = 1; // correct times
       SSD1306_Clear();
       while (position_encoderR < 30) //(20 / (102 / 155))？？？
       {
@@ -266,25 +270,41 @@ int main(void)
         SSD1306_GotoXY(0, 0);
         SSD1306_Puts(buffer, &Font_11x18, 1);
         SSD1306_UpdateScreen();
+        if (sec - tmp_time > 1)
+        {
+          tmp_time = sec;
+          if (distanceR() - tmp_dis < 12)
+          {
+            setPower(31 + 2 * i); // 大顆電池 20度：31 25度：38|小顆電池 20度：29 25度：35
+            i++;
+          }
+          if (distanceR() - tmp_dis > 30)
+          {
+            setPower(31 - 0.01 * j); // 大顆電池 20度：31 25度：38|小顆電池 20度：29 25度：35
+            j++;
+          }
+          tmp_dis = distanceR();
+        }
       }
       // 第 8 段，第一停止區
       setPower(0);
       brake();
       HAL_Delay(1000);
-      setPower(31); // 大電池 20度：22.5 25度：31|小電池 20度：21 25度：28
+      setPower(22.5); // 大電池 20度：22.5 25度：31|小電池 20度：21 25度：28
       HAL_Delay(2500);
 
       // 第 9 段，下坡循跡至第二停止區
       unbrake();
+      sec = 0;
       tmp_time = sec;
       tmp_dis = distanceR();
       i = 1; // correct times
       j = 1; // correct times
       position_encoderR = 0;
       SSD1306_Clear();
-      while (position_encoderR < 225)
+      while (position_encoderR < 225 && sec > 6)
       {
-        lineFollowerBackward(100, 31, &trigger); // 大電池 20度：22.5 25度：31|小電池 20度：22 25度：27.5
+        lineFollowerBackward(100, 22.5, &trigger); // 大電池 20度：22.5 25度：31|小電池 20度：22 25度：27.5
         itoa(position_encoderR, buffer, 10);
         SSD1306_GotoXY(0, 0);
         SSD1306_Puts(buffer, &Font_11x18, 1);
@@ -294,12 +314,12 @@ int main(void)
           tmp_time = sec;
           if (distanceR() - tmp_dis < 12)
           {
-            setPower(31 - 1 * i); // 大電池 20度：22.5 25度：31|小電池 20度：22 25度：27.5
+            setPower(22.5 - 1 * i); // 大電池 20度：22.5 25度：31|小電池 20度：22 25度：27.5
             i++;
           }
           if (distanceR() - tmp_dis > 20)
           {
-            setPower(31 + 0.1 * j); // 大電池 20度：22.5 25度：31|小電池 20度：22 25度：27.5
+            setPower(22.5 + 0.1 * j); // 大電池 20度：22.5 25度：31|小電池 20度：22 25度：27.5
             j++;
           }
           tmp_dis = distanceR();
