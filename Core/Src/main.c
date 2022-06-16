@@ -856,7 +856,6 @@ static void waitBlack(int ch, float pw)
       tmp_time = sec;
       if (distanceR() - tmp_dis < 5)
       {
-        tmp_dis = distanceR();
         if (pw + 0.5 * i < 30)
         {
           setPower(pw + 0.5 * i);
@@ -865,10 +864,10 @@ static void waitBlack(int ch, float pw)
       }
       if (distanceR() - tmp_dis > 18)
       {
-        tmp_dis = distanceR();
         setPower(pw - 0.5 * j);
         j++;
       }
+      tmp_dis = distanceR();
     }
   }
 }
