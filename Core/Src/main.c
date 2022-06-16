@@ -222,7 +222,7 @@ int main(void)
       pulse_servo3 = 500 + 2000 * degree_servo / 180;
       __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
       __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-      setPower(24); // 大顆電池 20度：28｜小顆電池 25度：30 20度：24.5｜加入調速-> 基準值24，上限30
+      setPower(24); // 大顆電池 25度：36.8 20度：28｜小顆電池 25度：30 20度：24.5｜加入調速-> 基準值24，上限30
       HAL_Delay(500);
       waitBlack(2, 24);
 
@@ -761,8 +761,16 @@ static void writeServo(float angle)
 
 static void setPower(float power)
 {
-  pulse_BLDC = (MAX_PULSE_LENGTH - MIN_PULSE_LENGTH) * power / 100 + MIN_PULSE_LENGTH;
-  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pulse_BLDC);
+  if (power < 40)
+  {
+    pulse_BLDC = (MAX_PULSE_LENGTH - MIN_PULSE_LENGTH) * power / 100 + MIN_PULSE_LENGTH;
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pulse_BLDC);
+  }
+  else
+  {
+    (MAX_PULSE_LENGTH - MIN_PULSE_LENGTH) * 40 / 100 + MIN_PULSE_LENGTH;
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pulse_BLDC);
+  }
 }
 
 static void brake()
