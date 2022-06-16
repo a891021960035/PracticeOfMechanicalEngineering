@@ -133,6 +133,10 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+  int tmp_time = sec;
+  int tmp_dis = distanceR();
+  int i = 1; // correct times
+  int j = 1; // correct times
   pulse_servo1 = MIN_PULSE_LENGTH;
   pulse_servo2 = MIN_PULSE_LENGTH;
   pulse_servo3 = MIN_PULSE_LENGTH;
@@ -212,29 +216,47 @@ int main(void)
       trigger = 0;
       while (trigger < 1)
       {
-        lineFollower(100, 25, &trigger);
+        lineFollower(100, 31, &trigger); // 20度：25｜25度 小電池：31 大電池：32
       }
 
       // // 第 5 段，變換車道
       degree_servo = 60;
-      writeServo(degree_servo);
+      writeServo(degree_servo + 1);
       pulse_servo2 = 500 + 2000 * degree_servo / 180;
       pulse_servo3 = 500 + 2000 * degree_servo / 180;
       __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
       __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-      setPower(24); // 大顆電池 25度：36.8 20度：28｜小顆電池 25度：30 20度：24.5｜加入調速-> 基準值24，上限30
+      setPower(32.5); // 大顆電池 20度：28.5 25度：37｜小顆電池 20度：24 25度：32.5｜加入調速-> 基準值24，上限45
       HAL_Delay(500);
-      waitBlack(2, 24);
+      waitBlack(2, 32.5);
 
-      // 第 6 段，修正路徑
-      // 第 7 段，第二循跡線上坡
+      // 第 6 段，修正路徑 第 7 段，第二循跡線上坡
       writeServo(90);
       trigger = 0;
+      tmp_time = sec;
+      tmp_dis = distanceR();
+      i = 1; // correct times
+      j = 1; // correct times
       unbrake();
       SSD1306_Clear();
       while (trigger < 2)
       {
-        lineFollower(100, 29, &trigger); // 大顆電池 20 度：31 小顆電池 25 度： 20 度：29
+        lineFollower(100, 35, &trigger); // 大顆電池 20度：31 25度：38|小顆電池 20度：29 25度：35
+        if (sec - tmp_time > 1)
+        {
+          tmp_time = sec;
+          if (distanceR() - tmp_dis < 12)
+          {
+            setPower(35 + 1 * i);
+            i++;
+          }
+          if (distanceR() - tmp_dis > 30)
+          {
+            setPower(35 - 0.01 * j);
+            j++;
+          }
+          tmp_dis = distanceR();
+        }
       }
       position_encoderR = 0;
       SSD1306_Clear();
@@ -249,22 +271,50 @@ int main(void)
       setPower(0);
       brake();
       HAL_Delay(1000);
-      setPower(21); // 大電池 20度：23，小電池 20度：20
+      setPower(28); // 大電池 20度：22.5 25度：31|小電池 20度：21 25度：28
       HAL_Delay(2500);
 
-      // 第 9 段，循跡至第二停止區
-      position_encoderR = 0;
+      // 第 9 段，下坡循跡至第二停止區
       unbrake();
-      while (position_encoderR < 170) // 220 /（102 / 155）
+      tmp_time = sec;
+      tmp_dis = distanceR();
+      i = 1; // correct times
+      j = 1; // correct times
+      position_encoderR = 0;
+      SSD1306_Clear();
+      while (position_encoderR < 230)
       {
-        lineFollowerBackward(100, 22, &trigger); // 大電池 20度：23，小電池 20度：22
+        lineFollowerBackward(100, 27.5, &trigger); // 大電池 20度：22.5 25度：31|小電池 20度：22 25度：27.5
+        itoa(position_encoderR, buffer, 10);
+        SSD1306_GotoXY(0, 0);
+        SSD1306_Puts(buffer, &Font_11x18, 1);
+        SSD1306_UpdateScreen();
+        if (sec - tmp_time > 1)
+        {
+          tmp_time = sec;
+          if (distanceR() - tmp_dis < 12)
+          {
+            setPower(27.5 - 1 * i);
+            i++;
+          }
+          if (distanceR() - tmp_dis > 20)
+          {
+            setPower(27.5 + 0.1 * j);
+            j++;
+          }
+          tmp_dis = distanceR();
+        }
+      }
+      position_encoderR = 0;
+      SSD1306_Clear();
+      while (position_encoderR < 40)
+      {
+        lineFollowerBackward(100, 0, &trigger);
         itoa(position_encoderR, buffer, 10);
         SSD1306_GotoXY(0, 0);
         SSD1306_Puts(buffer, &Font_11x18, 1);
         SSD1306_UpdateScreen();
       }
-      setPower(0);
-      HAL_Delay(1500);
       brake();
       mode = 0;
       break;
@@ -761,7 +811,7 @@ static void writeServo(float angle)
 
 static void setPower(float power)
 {
-  if (power < 40)
+  if (power < 55)
   {
     pulse_BLDC = (MAX_PULSE_LENGTH - MIN_PULSE_LENGTH) * power / 100 + MIN_PULSE_LENGTH;
     __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, pulse_BLDC);
@@ -791,7 +841,7 @@ static void unbrake()
 
 static void TRS(void) //微右轉
 {
-  writeServo(101.25); // 112.5
+  writeServo(105); // 112.5
 }
 
 static void TRL(void) //急右轉
@@ -801,7 +851,7 @@ static void TRL(void) //急右轉
 
 static void TLS(void) //微左轉
 {
-  writeServo(78.75); // 67.5
+  writeServo(75); // 67.5
 }
 
 static void TLL(void) //急左轉
@@ -811,11 +861,11 @@ static void TLL(void) //急左轉
 
 static void DRS(void) //微右飄
 {
-  pulse_servo2 = 500 + 2000 * 92.5 / 180;
+  pulse_servo2 = 500 + 2000 * 100 / 180;
   pulse_servo3 = pulse_servo2;
   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-  writeServo(92.5);
+  writeServo(100);
 }
 
 static void DRL(void) //急右飄
@@ -829,11 +879,11 @@ static void DRL(void) //急右飄
 
 static void DLS(void) //微左飄
 {
-  pulse_servo2 = 500 + 2000 * 87.5 / 180;
+  pulse_servo2 = 500 + 2000 * 80 / 180;
   pulse_servo3 = pulse_servo2;
   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-  writeServo(87.5);
+  writeServo(80);
 }
 
 static void DLL(void) //急左飄
@@ -862,17 +912,14 @@ static void waitBlack(int ch, float pw)
     if (sec - tmp_time > 1)
     {
       tmp_time = sec;
-      if (distanceR() - tmp_dis < 5)
+      if (distanceR() - tmp_dis < 12)
       {
-        if (pw + 0.5 * i < 30)
-        {
-          setPower(pw + 0.5 * i);
-          i++;
-        }
+        setPower(pw + 1 * i);
+        i++;
       }
-      if (distanceR() - tmp_dis > 18)
+      if (distanceR() - tmp_dis > 30)
       {
-        setPower(pw - 0.5 * j);
+        setPower(pw - 0.01 * j);
         j++;
       }
       tmp_dis = distanceR();
@@ -987,6 +1034,15 @@ static void lineFollowerBackward(float operationTime, float power, int *tg)
     if (value3 > 1000)
       statecode = statecode | 0b0001; // 1
 
+    tmp = (statecode & 0b1000) >> 3;
+    tmp += (statecode & 0b0100) >> 2;
+    tmp += (statecode & 0b0010) >> 1;
+    tmp += (statecode & 0b0001);
+    if (tmp > 2)
+    {
+      statecode = 0b1111;
+    }
+
     switch (statecode)
     {
     case 0b1000:
@@ -1004,6 +1060,34 @@ static void lineFollowerBackward(float operationTime, float power, int *tg)
     case 0b0000:
       unbrake();
       writeServo(90);
+      break;
+    case 0b1111:
+      writeServo(90);
+      while (tmp > 1) //變成白色之前狀態不變
+      {
+        statecode = 0;
+        HAL_ADC_Start(&hadc1);
+        HAL_ADC_PollForConversion(&hadc1, 1);
+        value0 = Board_Get_ADCChannelValue(&hadc1, 0);
+        value1 = Board_Get_ADCChannelValue(&hadc1, 1);
+        value2 = Board_Get_ADCChannelValue(&hadc1, 2);
+        value3 = Board_Get_ADCChannelValue(&hadc1, 3);
+
+        if (value0 > 1000)
+          statecode = statecode | 0b1000; // 8
+        if (value1 > 1000)
+          statecode = statecode | 0b0100; // 4
+        if (value2 > 1000)
+          statecode = statecode | 0b0010; // 2
+        if (value3 > 1000)
+          statecode = statecode | 0b0001; // 1
+
+        tmp = (statecode & 0b1000) >> 3;
+        tmp += (statecode & 0b0100) >> 2;
+        tmp += (statecode & 0b0010) >> 1;
+        tmp += (statecode & 0b0001);
+      }
+      *tg += 1;
       break;
     }
 
