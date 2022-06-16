@@ -814,11 +814,11 @@ static void DRS(void) //微右飄
 
 static void DRL(void) //急右飄
 {
-  pulse_servo2 = 500 + 2000 * 100 / 180;
+  pulse_servo2 = 500 + 2000 * 105 / 180;
   pulse_servo3 = pulse_servo2;
   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-  writeServo(100);
+  writeServo(105);
 }
 
 static void DLS(void) //微左飄
@@ -832,11 +832,11 @@ static void DLS(void) //微左飄
 
 static void DLL(void) //急左飄
 {
-  pulse_servo2 = 500 + 2000 * 80 / 180;
+  pulse_servo2 = 500 + 2000 * 75 / 180;
   pulse_servo3 = pulse_servo2;
   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
-  writeServo(80);
+  writeServo(75);
 }
 
 static void waitBlack(int ch)
@@ -914,13 +914,13 @@ static void lineFollower(float operationTime, float power, int *tg)
         value3 = Board_Get_ADCChannelValue(&hadc1, 3);
 
         if (value0 > 1000)
-          statecode = statecode | 0b1000; // 8
-        if (value1 > 1000)
-          statecode = statecode | 0b0100; // 4
-        if (value2 > 1000)
-          statecode = statecode | 0b0010; // 2
-        if (value3 > 1000)
           statecode = statecode | 0b0001; // 1
+        if (value1 > 1000)
+          statecode = statecode | 0b0010; // 2
+        if (value2 > 1000)
+          statecode = statecode | 0b0100; // 4
+        if (value3 > 1000)
+          statecode = statecode | 0b1000; // 8
 
         tmp = (statecode & 0b1000) >> 3;
         tmp += (statecode & 0b0100) >> 2;
@@ -951,13 +951,13 @@ static void lineFollowerBackward(float operationTime, float power, int *tg)
     value3 = Board_Get_ADCChannelValue(&hadc1, 3);
 
     if (value0 > 1000)
-      statecode = statecode | 0b0001; // 8
+      statecode = statecode | 0b1000; // 8
     if (value1 > 1000)
-      statecode = statecode | 0b0010; // 4
+      statecode = statecode | 0b0100; // 4
     if (value2 > 1000)
-      statecode = statecode | 0b0100; // 2
+      statecode = statecode | 0b0010; // 2
     if (value3 > 1000)
-      statecode = statecode | 0b1000; // 1
+      statecode = statecode | 0b0001; // 1
 
     switch (statecode)
     {
@@ -974,10 +974,7 @@ static void lineFollowerBackward(float operationTime, float power, int *tg)
       DRL(); //急右飄
       break;
     case 0b0000:
-      pulse_servo2 = 500 + 2000 * 90 / 180;
-      pulse_servo3 = pulse_servo2;
-      __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, pulse_servo2);
-      __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pulse_servo3);
+      unbrake();
       writeServo(90);
       break;
     }
