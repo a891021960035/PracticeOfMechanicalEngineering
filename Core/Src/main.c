@@ -315,12 +315,12 @@ int main(void)
         if (sec - tmp_time > 1)
         {
           tmp_time = sec;
-          if (distanceR() - tmp_dis < 12)
+          if (distanceR() - tmp_dis < 25)
           {
             setPower(22.5 - 1 * i); // 大電池 20度：22.5 25度：31|小電池 20度：22 25度：27.5
             i++;
           }
-          if (distanceR() - tmp_dis > 20)
+          if (distanceR() - tmp_dis > 30)
           {
             setPower(22.5 + 0.1 * j); // 大電池 20度：22.5 25度：31|小電池 20度：22 25度：27.5
             j++;
@@ -938,7 +938,7 @@ static void waitBlack(int ch, float pw)
       tmp_time = sec;
       if (distanceR() - tmp_dis < 12)
       {
-        setPower(pw + 1 * i);
+        setPower(pw + 2 * i);
         i++;
       }
       if (distanceR() - tmp_dis > 30)

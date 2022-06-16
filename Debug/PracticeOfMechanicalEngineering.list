@@ -3367,8 +3367,8 @@ static void lineFollowerBackward(float operationTime, float power, int *tg)
  8001f12:	d8fd      	bhi.n	8001f10 <main+0x390>
  8001f14:	e8df f013 	tbh	[pc, r3, lsl #1]
  8001f18:	000a0006 	.word	0x000a0006
- 8001f1c:	02a1000c 	.word	0x02a1000c
- 8001f20:	02d402a5 	.word	0x02d402a5
+ 8001f1c:	02a2000c 	.word	0x02a2000c
+ 8001f20:	02d402a6 	.word	0x02d402a6
       setPower(0);
  8001f24:	2000      	movs	r0, #0
       setPower(13);
@@ -3539,7 +3539,7 @@ static void lineFollowerBackward(float operationTime, float power, int *tg)
       while (trigger < 2)
  800205a:	683b      	ldr	r3, [r7, #0]
  800205c:	2b01      	cmp	r3, #1
- 800205e:	f340 80e6 	ble.w	800222e <main+0x6ae>
+ 800205e:	f340 80e7 	ble.w	8002230 <main+0x6b0>
       position_encoderR = 0;
  8002062:	2300      	movs	r3, #0
  8002064:	4a34      	ldr	r2, [pc, #208]	; (8002138 <main+0x5b8>)
@@ -3570,7 +3570,7 @@ static void lineFollowerBackward(float operationTime, float power, int *tg)
       while (position_encoderR < 30) //(20 / (102 / 155))？？？
  800208a:	6828      	ldr	r0, [r5, #0]
  800208c:	281d      	cmp	r0, #29
- 800208e:	f340 811c 	ble.w	80022ca <main+0x74a>
+ 800208e:	f340 811d 	ble.w	80022cc <main+0x74c>
       sec = 0;
  8002092:	2600      	movs	r6, #0
       setPower(0);
@@ -3614,10 +3614,10 @@ static void lineFollowerBackward(float operationTime, float power, int *tg)
       while (position_encoderR < 225 || sec < 6)
  80020d8:	682a      	ldr	r2, [r5, #0]
  80020da:	2ae0      	cmp	r2, #224	; 0xe0
- 80020dc:	f340 814d 	ble.w	800237a <main+0x7fa>
+ 80020dc:	f340 814e 	ble.w	800237c <main+0x7fc>
  80020e0:	681a      	ldr	r2, [r3, #0]
  80020e2:	2a05      	cmp	r2, #5
- 80020e4:	f340 8149 	ble.w	800237a <main+0x7fa>
+ 80020e4:	f340 814a 	ble.w	800237c <main+0x7fc>
       position_encoderR = 0;
  80020e8:	2300      	movs	r3, #0
         lineFollowerBackward(100, 0, &trigger);
@@ -3633,7 +3633,7 @@ static void lineFollowerBackward(float operationTime, float power, int *tg)
       while (position_encoderR < 40)
  80020f8:	682b      	ldr	r3, [r5, #0]
  80020fa:	2b27      	cmp	r3, #39	; 0x27
- 80020fc:	f340 8199 	ble.w	8002432 <main+0x8b2>
+ 80020fc:	f340 819a 	ble.w	8002434 <main+0x8b4>
       brake();
  8002100:	f7ff f8f8 	bl	80012f4 <brake>
       mode = 0;
@@ -3705,295 +3705,294 @@ static void lineFollowerBackward(float operationTime, float power, int *tg)
  80021c6:	f7fe fcb5 	bl	8000b34 <__aeabi_fsub>
  80021ca:	49af      	ldr	r1, [pc, #700]	; (8002488 <main+0x908>)
  80021cc:	f7fe ff5a 	bl	8001084 <__aeabi_fcmplt>
- 80021d0:	b148      	cbz	r0, 80021e6 <main+0x666>
-        setPower(pw + 1 * i);
- 80021d2:	4648      	mov	r0, r9
- 80021d4:	f7fe fd64 	bl	8000ca0 <__aeabi_i2f>
- 80021d8:	49ac      	ldr	r1, [pc, #688]	; (800248c <main+0x90c>)
- 80021da:	f7fe fcad 	bl	8000b38 <__addsf3>
- 80021de:	f7ff f8af 	bl	8001340 <setPower>
+ 80021d0:	b150      	cbz	r0, 80021e8 <main+0x668>
+        setPower(pw + 2 * i);
+ 80021d2:	ea4f 0049 	mov.w	r0, r9, lsl #1
+ 80021d6:	f7fe fd63 	bl	8000ca0 <__aeabi_i2f>
+ 80021da:	49ac      	ldr	r1, [pc, #688]	; (800248c <main+0x90c>)
+ 80021dc:	f7fe fcac 	bl	8000b38 <__addsf3>
+ 80021e0:	f7ff f8ae 	bl	8001340 <setPower>
         i++;
- 80021e2:	f109 0901 	add.w	r9, r9, #1
+ 80021e4:	f109 0901 	add.w	r9, r9, #1
       if (distanceR() - tmp_dis > 30)
- 80021e6:	f7ff fc3d 	bl	8001a64 <distanceR>
- 80021ea:	4631      	mov	r1, r6
- 80021ec:	f7fe fca2 	bl	8000b34 <__aeabi_fsub>
- 80021f0:	49a7      	ldr	r1, [pc, #668]	; (8002490 <main+0x910>)
- 80021f2:	f7fe ff65 	bl	80010c0 <__aeabi_fcmpgt>
- 80021f6:	b198      	cbz	r0, 8002220 <main+0x6a0>
+ 80021e8:	f7ff fc3c 	bl	8001a64 <distanceR>
+ 80021ec:	4631      	mov	r1, r6
+ 80021ee:	f7fe fca1 	bl	8000b34 <__aeabi_fsub>
+ 80021f2:	49a7      	ldr	r1, [pc, #668]	; (8002490 <main+0x910>)
+ 80021f4:	f7fe ff64 	bl	80010c0 <__aeabi_fcmpgt>
+ 80021f8:	b198      	cbz	r0, 8002222 <main+0x6a2>
         setPower(pw - 0.01 * j);
- 80021f8:	4640      	mov	r0, r8
- 80021fa:	f7fe f8fb 	bl	80003f4 <__aeabi_i2d>
- 80021fe:	a39c      	add	r3, pc, #624	; (adr r3, 8002470 <main+0x8f0>)
- 8002200:	e9d3 2300 	ldrd	r2, r3, [r3]
- 8002204:	f7fe f960 	bl	80004c8 <__aeabi_dmul>
- 8002208:	4602      	mov	r2, r0
- 800220a:	460b      	mov	r3, r1
- 800220c:	2000      	movs	r0, #0
- 800220e:	49a1      	ldr	r1, [pc, #644]	; (8002494 <main+0x914>)
- 8002210:	f7fd ffa2 	bl	8000158 <__aeabi_dsub>
- 8002214:	f7fe fc3a 	bl	8000a8c <__aeabi_d2f>
- 8002218:	f7ff f892 	bl	8001340 <setPower>
+ 80021fa:	4640      	mov	r0, r8
+ 80021fc:	f7fe f8fa 	bl	80003f4 <__aeabi_i2d>
+ 8002200:	a39b      	add	r3, pc, #620	; (adr r3, 8002470 <main+0x8f0>)
+ 8002202:	e9d3 2300 	ldrd	r2, r3, [r3]
+ 8002206:	f7fe f95f 	bl	80004c8 <__aeabi_dmul>
+ 800220a:	4602      	mov	r2, r0
+ 800220c:	460b      	mov	r3, r1
+ 800220e:	2000      	movs	r0, #0
+ 8002210:	49a0      	ldr	r1, [pc, #640]	; (8002494 <main+0x914>)
+ 8002212:	f7fd ffa1 	bl	8000158 <__aeabi_dsub>
+ 8002216:	f7fe fc39 	bl	8000a8c <__aeabi_d2f>
+ 800221a:	f7ff f891 	bl	8001340 <setPower>
         j++;
- 800221c:	f108 0801 	add.w	r8, r8, #1
+ 800221e:	f108 0801 	add.w	r8, r8, #1
       tmp_dis = distanceR();
- 8002220:	f7ff fc20 	bl	8001a64 <distanceR>
- 8002224:	f7fe ff56 	bl	80010d4 <__aeabi_f2iz>
+ 8002222:	f7ff fc1f 	bl	8001a64 <distanceR>
+ 8002226:	f7fe ff55 	bl	80010d4 <__aeabi_f2iz>
       tmp_time = sec;
- 8002228:	46da      	mov	sl, fp
+ 800222a:	46da      	mov	sl, fp
       tmp_dis = distanceR();
- 800222a:	4606      	mov	r6, r0
- 800222c:	e6fc      	b.n	8002028 <main+0x4a8>
+ 800222c:	4606      	mov	r6, r0
+ 800222e:	e6fb      	b.n	8002028 <main+0x4a8>
         lineFollower(100, 31, &trigger); // 大顆電池 20度：31 25度：38|小顆電池 20度：29 25度：35
- 800222e:	499a      	ldr	r1, [pc, #616]	; (8002498 <main+0x918>)
- 8002230:	489a      	ldr	r0, [pc, #616]	; (800249c <main+0x91c>)
- 8002232:	f7ff f901 	bl	8001438 <lineFollower.constprop.0>
+ 8002230:	4999      	ldr	r1, [pc, #612]	; (8002498 <main+0x918>)
+ 8002232:	489a      	ldr	r0, [pc, #616]	; (800249c <main+0x91c>)
+ 8002234:	f7ff f900 	bl	8001438 <lineFollower.constprop.0>
         if (sec - tmp_time > 1)
- 8002236:	4b93      	ldr	r3, [pc, #588]	; (8002484 <main+0x904>)
- 8002238:	f8d3 a000 	ldr.w	sl, [r3]
- 800223c:	ebaa 0309 	sub.w	r3, sl, r9
- 8002240:	2b01      	cmp	r3, #1
- 8002242:	f77f af0a 	ble.w	800205a <main+0x4da>
+ 8002238:	4b92      	ldr	r3, [pc, #584]	; (8002484 <main+0x904>)
+ 800223a:	f8d3 a000 	ldr.w	sl, [r3]
+ 800223e:	ebaa 0309 	sub.w	r3, sl, r9
+ 8002242:	2b01      	cmp	r3, #1
+ 8002244:	f77f af09 	ble.w	800205a <main+0x4da>
           if (distanceR() - tmp_dis < 12)
- 8002246:	f7ff fc0d 	bl	8001a64 <distanceR>
- 800224a:	4681      	mov	r9, r0
- 800224c:	4628      	mov	r0, r5
- 800224e:	f7fe fd27 	bl	8000ca0 <__aeabi_i2f>
- 8002252:	4601      	mov	r1, r0
- 8002254:	4605      	mov	r5, r0
- 8002256:	4648      	mov	r0, r9
- 8002258:	f7fe fc6c 	bl	8000b34 <__aeabi_fsub>
- 800225c:	4659      	mov	r1, fp
- 800225e:	f7fe ff11 	bl	8001084 <__aeabi_fcmplt>
- 8002262:	b158      	cbz	r0, 800227c <main+0x6fc>
+ 8002248:	f7ff fc0c 	bl	8001a64 <distanceR>
+ 800224c:	4681      	mov	r9, r0
+ 800224e:	4628      	mov	r0, r5
+ 8002250:	f7fe fd26 	bl	8000ca0 <__aeabi_i2f>
+ 8002254:	4601      	mov	r1, r0
+ 8002256:	4605      	mov	r5, r0
+ 8002258:	4648      	mov	r0, r9
+ 800225a:	f7fe fc6b 	bl	8000b34 <__aeabi_fsub>
+ 800225e:	4659      	mov	r1, fp
+ 8002260:	f7fe ff10 	bl	8001084 <__aeabi_fcmplt>
+ 8002264:	b158      	cbz	r0, 800227e <main+0x6fe>
             setPower(31 + 2 * i); // 大顆電池 20度：31 25度：38|小顆電池 20度：29 25度：35
- 8002264:	ea4f 0048 	mov.w	r0, r8, lsl #1
- 8002268:	f100 031f 	add.w	r3, r0, #31
- 800226c:	4618      	mov	r0, r3
- 800226e:	9300      	str	r3, [sp, #0]
- 8002270:	f7fe fd16 	bl	8000ca0 <__aeabi_i2f>
- 8002274:	f7ff f864 	bl	8001340 <setPower>
+ 8002266:	ea4f 0048 	mov.w	r0, r8, lsl #1
+ 800226a:	f100 031f 	add.w	r3, r0, #31
+ 800226e:	4618      	mov	r0, r3
+ 8002270:	9300      	str	r3, [sp, #0]
+ 8002272:	f7fe fd15 	bl	8000ca0 <__aeabi_i2f>
+ 8002276:	f7ff f863 	bl	8001340 <setPower>
             i++;
- 8002278:	f108 0801 	add.w	r8, r8, #1
+ 800227a:	f108 0801 	add.w	r8, r8, #1
           if (distanceR() - tmp_dis > 30)
- 800227c:	f7ff fbf2 	bl	8001a64 <distanceR>
- 8002280:	4629      	mov	r1, r5
- 8002282:	f7fe fc57 	bl	8000b34 <__aeabi_fsub>
- 8002286:	4982      	ldr	r1, [pc, #520]	; (8002490 <main+0x910>)
- 8002288:	f7fe ff1a 	bl	80010c0 <__aeabi_fcmpgt>
- 800228c:	b1b0      	cbz	r0, 80022bc <main+0x73c>
+ 800227e:	f7ff fbf1 	bl	8001a64 <distanceR>
+ 8002282:	4629      	mov	r1, r5
+ 8002284:	f7fe fc56 	bl	8000b34 <__aeabi_fsub>
+ 8002288:	4981      	ldr	r1, [pc, #516]	; (8002490 <main+0x910>)
+ 800228a:	f7fe ff19 	bl	80010c0 <__aeabi_fcmpgt>
+ 800228e:	b1b0      	cbz	r0, 80022be <main+0x73e>
             setPower(31 - 0.01 * j); // 大顆電池 20度：31 25度：38|小顆電池 20度：29 25度：35
- 800228e:	4630      	mov	r0, r6
- 8002290:	f7fe f8b0 	bl	80003f4 <__aeabi_i2d>
- 8002294:	a376      	add	r3, pc, #472	; (adr r3, 8002470 <main+0x8f0>)
- 8002296:	e9d3 2300 	ldrd	r2, r3, [r3]
- 800229a:	f7fe f915 	bl	80004c8 <__aeabi_dmul>
- 800229e:	460b      	mov	r3, r1
- 80022a0:	4602      	mov	r2, r0
- 80022a2:	497f      	ldr	r1, [pc, #508]	; (80024a0 <main+0x920>)
- 80022a4:	2000      	movs	r0, #0
- 80022a6:	f7fd ff57 	bl	8000158 <__aeabi_dsub>
- 80022aa:	f7fe fbef 	bl	8000a8c <__aeabi_d2f>
- 80022ae:	f7ff f847 	bl	8001340 <setPower>
+ 8002290:	4630      	mov	r0, r6
+ 8002292:	f7fe f8af 	bl	80003f4 <__aeabi_i2d>
+ 8002296:	a376      	add	r3, pc, #472	; (adr r3, 8002470 <main+0x8f0>)
+ 8002298:	e9d3 2300 	ldrd	r2, r3, [r3]
+ 800229c:	f7fe f914 	bl	80004c8 <__aeabi_dmul>
+ 80022a0:	460b      	mov	r3, r1
+ 80022a2:	4602      	mov	r2, r0
+ 80022a4:	497e      	ldr	r1, [pc, #504]	; (80024a0 <main+0x920>)
+ 80022a6:	2000      	movs	r0, #0
+ 80022a8:	f7fd ff56 	bl	8000158 <__aeabi_dsub>
+ 80022ac:	f7fe fbee 	bl	8000a8c <__aeabi_d2f>
+ 80022b0:	f7ff f846 	bl	8001340 <setPower>
             power_new = 31 + 2 * j;
- 80022b2:	0070      	lsls	r0, r6, #1
- 80022b4:	f100 031f 	add.w	r3, r0, #31
- 80022b8:	9300      	str	r3, [sp, #0]
+ 80022b4:	0070      	lsls	r0, r6, #1
+ 80022b6:	f100 031f 	add.w	r3, r0, #31
+ 80022ba:	9300      	str	r3, [sp, #0]
             j++;
- 80022ba:	3601      	adds	r6, #1
+ 80022bc:	3601      	adds	r6, #1
           tmp_dis = distanceR();
- 80022bc:	f7ff fbd2 	bl	8001a64 <distanceR>
- 80022c0:	f7fe ff08 	bl	80010d4 <__aeabi_f2iz>
+ 80022be:	f7ff fbd1 	bl	8001a64 <distanceR>
+ 80022c2:	f7fe ff07 	bl	80010d4 <__aeabi_f2iz>
         if (sec - tmp_time > 1)
- 80022c4:	46d1      	mov	r9, sl
+ 80022c6:	46d1      	mov	r9, sl
           tmp_dis = distanceR();
- 80022c6:	4605      	mov	r5, r0
- 80022c8:	e6c7      	b.n	800205a <main+0x4da>
+ 80022c8:	4605      	mov	r5, r0
+ 80022ca:	e6c6      	b.n	800205a <main+0x4da>
         itoa(position_encoderR, buffer, 10);
- 80022ca:	220a      	movs	r2, #10
- 80022cc:	4649      	mov	r1, r9
- 80022ce:	f003 fc61 	bl	8005b94 <itoa>
+ 80022cc:	220a      	movs	r2, #10
+ 80022ce:	4649      	mov	r1, r9
+ 80022d0:	f003 fc60 	bl	8005b94 <itoa>
         SSD1306_GotoXY(0, 0);
- 80022d2:	2100      	movs	r1, #0
- 80022d4:	4608      	mov	r0, r1
- 80022d6:	f000 f951 	bl	800257c <SSD1306_GotoXY>
+ 80022d4:	2100      	movs	r1, #0
+ 80022d6:	4608      	mov	r0, r1
+ 80022d8:	f000 f950 	bl	800257c <SSD1306_GotoXY>
         SSD1306_Puts(buffer, &Font_11x18, 1);
- 80022da:	2201      	movs	r2, #1
- 80022dc:	4971      	ldr	r1, [pc, #452]	; (80024a4 <main+0x924>)
- 80022de:	4648      	mov	r0, r9
- 80022e0:	f000 f9a0 	bl	8002624 <SSD1306_Puts>
+ 80022dc:	2201      	movs	r2, #1
+ 80022de:	4971      	ldr	r1, [pc, #452]	; (80024a4 <main+0x924>)
+ 80022e0:	4648      	mov	r0, r9
+ 80022e2:	f000 f99f 	bl	8002624 <SSD1306_Puts>
         SSD1306_UpdateScreen();
- 80022e4:	f000 f9de 	bl	80026a4 <SSD1306_UpdateScreen>
+ 80022e6:	f000 f9dd 	bl	80026a4 <SSD1306_UpdateScreen>
         if (sec - tmp_time > 1)
- 80022e8:	4a66      	ldr	r2, [pc, #408]	; (8002484 <main+0x904>)
- 80022ea:	9b01      	ldr	r3, [sp, #4]
- 80022ec:	f8d2 a000 	ldr.w	sl, [r2]
- 80022f0:	ebaa 0203 	sub.w	r2, sl, r3
- 80022f4:	2a01      	cmp	r2, #1
- 80022f6:	f77f aec8 	ble.w	800208a <main+0x50a>
+ 80022ea:	4a66      	ldr	r2, [pc, #408]	; (8002484 <main+0x904>)
+ 80022ec:	9b01      	ldr	r3, [sp, #4]
+ 80022ee:	f8d2 a000 	ldr.w	sl, [r2]
+ 80022f2:	ebaa 0203 	sub.w	r2, sl, r3
+ 80022f6:	2a01      	cmp	r2, #1
+ 80022f8:	f77f aec7 	ble.w	800208a <main+0x50a>
           if (distanceR() - tmp_dis < 12)
- 80022fa:	f7ff fbb3 	bl	8001a64 <distanceR>
- 80022fe:	4681      	mov	r9, r0
- 8002300:	4640      	mov	r0, r8
- 8002302:	f7fe fccd 	bl	8000ca0 <__aeabi_i2f>
- 8002306:	4601      	mov	r1, r0
- 8002308:	4605      	mov	r5, r0
- 800230a:	4648      	mov	r0, r9
- 800230c:	f7fe fc12 	bl	8000b34 <__aeabi_fsub>
- 8002310:	495d      	ldr	r1, [pc, #372]	; (8002488 <main+0x908>)
- 8002312:	f7fe feb7 	bl	8001084 <__aeabi_fcmplt>
- 8002316:	b138      	cbz	r0, 8002328 <main+0x7a8>
+ 80022fc:	f7ff fbb2 	bl	8001a64 <distanceR>
+ 8002300:	4681      	mov	r9, r0
+ 8002302:	4640      	mov	r0, r8
+ 8002304:	f7fe fccc 	bl	8000ca0 <__aeabi_i2f>
+ 8002308:	4601      	mov	r1, r0
+ 800230a:	4605      	mov	r5, r0
+ 800230c:	4648      	mov	r0, r9
+ 800230e:	f7fe fc11 	bl	8000b34 <__aeabi_fsub>
+ 8002312:	495d      	ldr	r1, [pc, #372]	; (8002488 <main+0x908>)
+ 8002314:	f7fe feb6 	bl	8001084 <__aeabi_fcmplt>
+ 8002318:	b138      	cbz	r0, 800232a <main+0x7aa>
             setPower(power_new + 2 * i);
- 8002318:	9b00      	ldr	r3, [sp, #0]
- 800231a:	eb03 0047 	add.w	r0, r3, r7, lsl #1
- 800231e:	f7fe fcbf 	bl	8000ca0 <__aeabi_i2f>
- 8002322:	f7ff f80d 	bl	8001340 <setPower>
+ 800231a:	9b00      	ldr	r3, [sp, #0]
+ 800231c:	eb03 0047 	add.w	r0, r3, r7, lsl #1
+ 8002320:	f7fe fcbe 	bl	8000ca0 <__aeabi_i2f>
+ 8002324:	f7ff f80c 	bl	8001340 <setPower>
             i++;
- 8002326:	3701      	adds	r7, #1
+ 8002328:	3701      	adds	r7, #1
           if (distanceR() - tmp_dis > 30)
- 8002328:	f7ff fb9c 	bl	8001a64 <distanceR>
- 800232c:	4629      	mov	r1, r5
- 800232e:	f7fe fc01 	bl	8000b34 <__aeabi_fsub>
- 8002332:	4659      	mov	r1, fp
- 8002334:	f7fe fec4 	bl	80010c0 <__aeabi_fcmpgt>
- 8002338:	b1b8      	cbz	r0, 800236a <main+0x7ea>
+ 800232a:	f7ff fb9b 	bl	8001a64 <distanceR>
+ 800232e:	4629      	mov	r1, r5
+ 8002330:	f7fe fc00 	bl	8000b34 <__aeabi_fsub>
+ 8002334:	4659      	mov	r1, fp
+ 8002336:	f7fe fec3 	bl	80010c0 <__aeabi_fcmpgt>
+ 800233a:	b1b8      	cbz	r0, 800236c <main+0x7ec>
             setPower(power_new - 0.01 * j);
- 800233a:	9800      	ldr	r0, [sp, #0]
- 800233c:	f7fe f85a 	bl	80003f4 <__aeabi_i2d>
- 8002340:	4680      	mov	r8, r0
- 8002342:	4630      	mov	r0, r6
- 8002344:	4689      	mov	r9, r1
- 8002346:	f7fe f855 	bl	80003f4 <__aeabi_i2d>
- 800234a:	a349      	add	r3, pc, #292	; (adr r3, 8002470 <main+0x8f0>)
- 800234c:	e9d3 2300 	ldrd	r2, r3, [r3]
- 8002350:	f7fe f8ba 	bl	80004c8 <__aeabi_dmul>
- 8002354:	4602      	mov	r2, r0
- 8002356:	460b      	mov	r3, r1
- 8002358:	4640      	mov	r0, r8
- 800235a:	4649      	mov	r1, r9
- 800235c:	f7fd fefc 	bl	8000158 <__aeabi_dsub>
- 8002360:	f7fe fb94 	bl	8000a8c <__aeabi_d2f>
- 8002364:	f7fe ffec 	bl	8001340 <setPower>
+ 800233c:	9800      	ldr	r0, [sp, #0]
+ 800233e:	f7fe f859 	bl	80003f4 <__aeabi_i2d>
+ 8002342:	4680      	mov	r8, r0
+ 8002344:	4630      	mov	r0, r6
+ 8002346:	4689      	mov	r9, r1
+ 8002348:	f7fe f854 	bl	80003f4 <__aeabi_i2d>
+ 800234c:	a348      	add	r3, pc, #288	; (adr r3, 8002470 <main+0x8f0>)
+ 800234e:	e9d3 2300 	ldrd	r2, r3, [r3]
+ 8002352:	f7fe f8b9 	bl	80004c8 <__aeabi_dmul>
+ 8002356:	4602      	mov	r2, r0
+ 8002358:	460b      	mov	r3, r1
+ 800235a:	4640      	mov	r0, r8
+ 800235c:	4649      	mov	r1, r9
+ 800235e:	f7fd fefb 	bl	8000158 <__aeabi_dsub>
+ 8002362:	f7fe fb93 	bl	8000a8c <__aeabi_d2f>
+ 8002366:	f7fe ffeb 	bl	8001340 <setPower>
             j++;
- 8002368:	3601      	adds	r6, #1
+ 800236a:	3601      	adds	r6, #1
           tmp_dis = distanceR();
- 800236a:	f7ff fb7b 	bl	8001a64 <distanceR>
- 800236e:	f7fe feb1 	bl	80010d4 <__aeabi_f2iz>
+ 800236c:	f7ff fb7a 	bl	8001a64 <distanceR>
+ 8002370:	f7fe feb0 	bl	80010d4 <__aeabi_f2iz>
         if (sec - tmp_time > 1)
- 8002372:	f8cd a004 	str.w	sl, [sp, #4]
+ 8002374:	f8cd a004 	str.w	sl, [sp, #4]
           tmp_dis = distanceR();
- 8002376:	4680      	mov	r8, r0
- 8002378:	e684      	b.n	8002084 <main+0x504>
+ 8002378:	4680      	mov	r8, r0
+ 800237a:	e683      	b.n	8002084 <main+0x504>
         lineFollowerBackward(100, 22.5, &trigger); // 大電池 20度：22.5 25度：31|小電池 20度：22 25度：27.5
- 800237a:	484b      	ldr	r0, [pc, #300]	; (80024a8 <main+0x928>)
- 800237c:	f7ff f9ca 	bl	8001714 <lineFollowerBackward.constprop.0>
+ 800237c:	484a      	ldr	r0, [pc, #296]	; (80024a8 <main+0x928>)
+ 800237e:	f7ff f9c9 	bl	8001714 <lineFollowerBackward.constprop.0>
         itoa(position_encoderR, buffer, 10);
- 8002380:	4b4a      	ldr	r3, [pc, #296]	; (80024ac <main+0x92c>)
- 8002382:	220a      	movs	r2, #10
- 8002384:	6818      	ldr	r0, [r3, #0]
- 8002386:	4651      	mov	r1, sl
- 8002388:	f003 fc04 	bl	8005b94 <itoa>
+ 8002382:	4b4a      	ldr	r3, [pc, #296]	; (80024ac <main+0x92c>)
+ 8002384:	220a      	movs	r2, #10
+ 8002386:	6818      	ldr	r0, [r3, #0]
+ 8002388:	4651      	mov	r1, sl
+ 800238a:	f003 fc03 	bl	8005b94 <itoa>
         SSD1306_GotoXY(0, 0);
- 800238c:	2100      	movs	r1, #0
- 800238e:	4608      	mov	r0, r1
- 8002390:	f000 f8f4 	bl	800257c <SSD1306_GotoXY>
+ 800238e:	2100      	movs	r1, #0
+ 8002390:	4608      	mov	r0, r1
+ 8002392:	f000 f8f3 	bl	800257c <SSD1306_GotoXY>
         SSD1306_Puts(buffer, &Font_11x18, 1);
- 8002394:	2201      	movs	r2, #1
- 8002396:	4943      	ldr	r1, [pc, #268]	; (80024a4 <main+0x924>)
- 8002398:	4650      	mov	r0, sl
- 800239a:	f000 f943 	bl	8002624 <SSD1306_Puts>
+ 8002396:	2201      	movs	r2, #1
+ 8002398:	4942      	ldr	r1, [pc, #264]	; (80024a4 <main+0x924>)
+ 800239a:	4650      	mov	r0, sl
+ 800239c:	f000 f942 	bl	8002624 <SSD1306_Puts>
         SSD1306_UpdateScreen();
- 800239e:	f000 f981 	bl	80026a4 <SSD1306_UpdateScreen>
+ 80023a0:	f000 f980 	bl	80026a4 <SSD1306_UpdateScreen>
         if (sec - tmp_time > 1)
- 80023a2:	4b38      	ldr	r3, [pc, #224]	; (8002484 <main+0x904>)
- 80023a4:	f8d3 b000 	ldr.w	fp, [r3]
- 80023a8:	ebab 0206 	sub.w	r2, fp, r6
- 80023ac:	2a01      	cmp	r2, #1
- 80023ae:	f77f ae93 	ble.w	80020d8 <main+0x558>
-          if (distanceR() - tmp_dis < 12)
- 80023b2:	f7ff fb57 	bl	8001a64 <distanceR>
- 80023b6:	4682      	mov	sl, r0
- 80023b8:	4638      	mov	r0, r7
- 80023ba:	f7fe fc71 	bl	8000ca0 <__aeabi_i2f>
- 80023be:	4601      	mov	r1, r0
- 80023c0:	4606      	mov	r6, r0
- 80023c2:	4650      	mov	r0, sl
- 80023c4:	f7fe fbb6 	bl	8000b34 <__aeabi_fsub>
- 80023c8:	492f      	ldr	r1, [pc, #188]	; (8002488 <main+0x908>)
- 80023ca:	f7fe fe5b 	bl	8001084 <__aeabi_fcmplt>
- 80023ce:	b170      	cbz	r0, 80023ee <main+0x86e>
+ 80023a4:	4b37      	ldr	r3, [pc, #220]	; (8002484 <main+0x904>)
+ 80023a6:	f8d3 b000 	ldr.w	fp, [r3]
+ 80023aa:	ebab 0206 	sub.w	r2, fp, r6
+ 80023ae:	2a01      	cmp	r2, #1
+ 80023b0:	f77f ae92 	ble.w	80020d8 <main+0x558>
+          if (distanceR() - tmp_dis < 25)
+ 80023b4:	f7ff fb56 	bl	8001a64 <distanceR>
+ 80023b8:	4682      	mov	sl, r0
+ 80023ba:	4638      	mov	r0, r7
+ 80023bc:	f7fe fc70 	bl	8000ca0 <__aeabi_i2f>
+ 80023c0:	4601      	mov	r1, r0
+ 80023c2:	4606      	mov	r6, r0
+ 80023c4:	4650      	mov	r0, sl
+ 80023c6:	f7fe fbb5 	bl	8000b34 <__aeabi_fsub>
+ 80023ca:	4939      	ldr	r1, [pc, #228]	; (80024b0 <main+0x930>)
+ 80023cc:	f7fe fe5a 	bl	8001084 <__aeabi_fcmplt>
+ 80023d0:	b170      	cbz	r0, 80023f0 <main+0x870>
             setPower(22.5 - 1 * i); // 大電池 20度：22.5 25度：31|小電池 20度：22 25度：27.5
- 80023d0:	4648      	mov	r0, r9
- 80023d2:	f7fe f80f 	bl	80003f4 <__aeabi_i2d>
- 80023d6:	4602      	mov	r2, r0
- 80023d8:	460b      	mov	r3, r1
- 80023da:	2000      	movs	r0, #0
- 80023dc:	4934      	ldr	r1, [pc, #208]	; (80024b0 <main+0x930>)
- 80023de:	f7fd febb 	bl	8000158 <__aeabi_dsub>
- 80023e2:	f7fe fb53 	bl	8000a8c <__aeabi_d2f>
- 80023e6:	f7fe ffab 	bl	8001340 <setPower>
+ 80023d2:	4648      	mov	r0, r9
+ 80023d4:	f7fe f80e 	bl	80003f4 <__aeabi_i2d>
+ 80023d8:	4602      	mov	r2, r0
+ 80023da:	460b      	mov	r3, r1
+ 80023dc:	2000      	movs	r0, #0
+ 80023de:	4935      	ldr	r1, [pc, #212]	; (80024b4 <main+0x934>)
+ 80023e0:	f7fd feba 	bl	8000158 <__aeabi_dsub>
+ 80023e4:	f7fe fb52 	bl	8000a8c <__aeabi_d2f>
+ 80023e8:	f7fe ffaa 	bl	8001340 <setPower>
             i++;
- 80023ea:	f109 0901 	add.w	r9, r9, #1
-          if (distanceR() - tmp_dis > 20)
- 80023ee:	f7ff fb39 	bl	8001a64 <distanceR>
- 80023f2:	4631      	mov	r1, r6
- 80023f4:	f7fe fb9e 	bl	8000b34 <__aeabi_fsub>
- 80023f8:	492e      	ldr	r1, [pc, #184]	; (80024b4 <main+0x934>)
- 80023fa:	f7fe fe61 	bl	80010c0 <__aeabi_fcmpgt>
- 80023fe:	b188      	cbz	r0, 8002424 <main+0x8a4>
+ 80023ec:	f109 0901 	add.w	r9, r9, #1
+          if (distanceR() - tmp_dis > 30)
+ 80023f0:	f7ff fb38 	bl	8001a64 <distanceR>
+ 80023f4:	4631      	mov	r1, r6
+ 80023f6:	f7fe fb9d 	bl	8000b34 <__aeabi_fsub>
+ 80023fa:	4925      	ldr	r1, [pc, #148]	; (8002490 <main+0x910>)
+ 80023fc:	f7fe fe60 	bl	80010c0 <__aeabi_fcmpgt>
+ 8002400:	b188      	cbz	r0, 8002426 <main+0x8a6>
             setPower(22.5 + 0.1 * j); // 大電池 20度：22.5 25度：31|小電池 20度：22 25度：27.5
- 8002400:	4640      	mov	r0, r8
- 8002402:	f7fd fff7 	bl	80003f4 <__aeabi_i2d>
- 8002406:	a31c      	add	r3, pc, #112	; (adr r3, 8002478 <main+0x8f8>)
- 8002408:	e9d3 2300 	ldrd	r2, r3, [r3]
- 800240c:	f7fe f85c 	bl	80004c8 <__aeabi_dmul>
- 8002410:	2200      	movs	r2, #0
- 8002412:	4b27      	ldr	r3, [pc, #156]	; (80024b0 <main+0x930>)
- 8002414:	f7fd fea2 	bl	800015c <__adddf3>
- 8002418:	f7fe fb38 	bl	8000a8c <__aeabi_d2f>
- 800241c:	f7fe ff90 	bl	8001340 <setPower>
+ 8002402:	4640      	mov	r0, r8
+ 8002404:	f7fd fff6 	bl	80003f4 <__aeabi_i2d>
+ 8002408:	a31b      	add	r3, pc, #108	; (adr r3, 8002478 <main+0x8f8>)
+ 800240a:	e9d3 2300 	ldrd	r2, r3, [r3]
+ 800240e:	f7fe f85b 	bl	80004c8 <__aeabi_dmul>
+ 8002412:	2200      	movs	r2, #0
+ 8002414:	4b27      	ldr	r3, [pc, #156]	; (80024b4 <main+0x934>)
+ 8002416:	f7fd fea1 	bl	800015c <__adddf3>
+ 800241a:	f7fe fb37 	bl	8000a8c <__aeabi_d2f>
+ 800241e:	f7fe ff8f 	bl	8001340 <setPower>
             j++;
- 8002420:	f108 0801 	add.w	r8, r8, #1
+ 8002422:	f108 0801 	add.w	r8, r8, #1
           tmp_dis = distanceR();
- 8002424:	f7ff fb1e 	bl	8001a64 <distanceR>
- 8002428:	f7fe fe54 	bl	80010d4 <__aeabi_f2iz>
+ 8002426:	f7ff fb1d 	bl	8001a64 <distanceR>
+ 800242a:	f7fe fe53 	bl	80010d4 <__aeabi_f2iz>
         if (sec - tmp_time > 1)
- 800242c:	465e      	mov	r6, fp
+ 800242e:	465e      	mov	r6, fp
           tmp_dis = distanceR();
- 800242e:	4607      	mov	r7, r0
- 8002430:	e64f      	b.n	80020d2 <main+0x552>
+ 8002430:	4607      	mov	r7, r0
+ 8002432:	e64e      	b.n	80020d2 <main+0x552>
         lineFollowerBackward(100, 0, &trigger);
- 8002432:	4640      	mov	r0, r8
- 8002434:	f7ff f96e 	bl	8001714 <lineFollowerBackward.constprop.0>
+ 8002434:	4640      	mov	r0, r8
+ 8002436:	f7ff f96d 	bl	8001714 <lineFollowerBackward.constprop.0>
         itoa(position_encoderR, buffer, 10);
- 8002438:	220a      	movs	r2, #10
- 800243a:	4631      	mov	r1, r6
- 800243c:	6828      	ldr	r0, [r5, #0]
- 800243e:	f003 fba9 	bl	8005b94 <itoa>
+ 800243a:	220a      	movs	r2, #10
+ 800243c:	4631      	mov	r1, r6
+ 800243e:	6828      	ldr	r0, [r5, #0]
+ 8002440:	f003 fba8 	bl	8005b94 <itoa>
         SSD1306_GotoXY(0, 0);
- 8002442:	2100      	movs	r1, #0
- 8002444:	4608      	mov	r0, r1
- 8002446:	f000 f899 	bl	800257c <SSD1306_GotoXY>
+ 8002444:	2100      	movs	r1, #0
+ 8002446:	4608      	mov	r0, r1
+ 8002448:	f000 f898 	bl	800257c <SSD1306_GotoXY>
         SSD1306_Puts(buffer, &Font_11x18, 1);
- 800244a:	2201      	movs	r2, #1
- 800244c:	4639      	mov	r1, r7
- 800244e:	4630      	mov	r0, r6
- 8002450:	f000 f8e8 	bl	8002624 <SSD1306_Puts>
+ 800244c:	2201      	movs	r2, #1
+ 800244e:	4639      	mov	r1, r7
+ 8002450:	4630      	mov	r0, r6
+ 8002452:	f000 f8e7 	bl	8002624 <SSD1306_Puts>
         SSD1306_UpdateScreen();
- 8002454:	f000 f926 	bl	80026a4 <SSD1306_UpdateScreen>
- 8002458:	e64e      	b.n	80020f8 <main+0x578>
+ 8002456:	f000 f925 	bl	80026a4 <SSD1306_UpdateScreen>
+ 800245a:	e64d      	b.n	80020f8 <main+0x578>
       writeServo(120);
- 800245a:	4817      	ldr	r0, [pc, #92]	; (80024b8 <main+0x938>)
- 800245c:	f7fe ff2e 	bl	80012bc <writeServo>
+ 800245c:	4816      	ldr	r0, [pc, #88]	; (80024b8 <main+0x938>)
+ 800245e:	f7fe ff2d 	bl	80012bc <writeServo>
       break;
- 8002460:	e554      	b.n	8001f0c <main+0x38c>
+ 8002462:	e553      	b.n	8001f0c <main+0x38c>
       HAL_Delay(3000);
- 8002462:	f640 30b8 	movw	r0, #3000	; 0xbb8
- 8002466:	f000 fbd3 	bl	8002c10 <HAL_Delay>
+ 8002464:	f640 30b8 	movw	r0, #3000	; 0xbb8
+ 8002468:	f000 fbd2 	bl	8002c10 <HAL_Delay>
       setPower(13);
- 800246a:	4814      	ldr	r0, [pc, #80]	; (80024bc <main+0x93c>)
- 800246c:	e55b      	b.n	8001f26 <main+0x3a6>
- 800246e:	bf00      	nop
+ 800246c:	4813      	ldr	r0, [pc, #76]	; (80024bc <main+0x93c>)
+ 800246e:	e55a      	b.n	8001f26 <main+0x3a6>
  8002470:	47ae147b 	.word	0x47ae147b
  8002474:	3f847ae1 	.word	0x3f847ae1
  8002478:	9999999a 	.word	0x9999999a
@@ -4010,8 +4009,8 @@ static void lineFollowerBackward(float operationTime, float power, int *tg)
  80024a4:	20000000 	.word	0x20000000
  80024a8:	41b40000 	.word	0x41b40000
  80024ac:	20000214 	.word	0x20000214
- 80024b0:	40368000 	.word	0x40368000
- 80024b4:	41a00000 	.word	0x41a00000
+ 80024b0:	41c80000 	.word	0x41c80000
+ 80024b4:	40368000 	.word	0x40368000
  80024b8:	42f00000 	.word	0x42f00000
  80024bc:	41500000 	.word	0x41500000
       HAL_ADC_Start(&hadc1);
