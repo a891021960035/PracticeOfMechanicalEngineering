@@ -137,6 +137,7 @@ int main(void)
   int tmp_dis = distanceR();
   int i = 1; // correct times
   int j = 1; // correct times
+  int power_new = 0;
   pulse_servo1 = MIN_PULSE_LENGTH;
   pulse_servo2 = MIN_PULSE_LENGTH;
   pulse_servo3 = MIN_PULSE_LENGTH;
@@ -248,11 +249,13 @@ int main(void)
           if (distanceR() - tmp_dis < 12)
           {
             setPower(31 + 2 * i); // 大顆電池 20度：31 25度：38|小顆電池 20度：29 25度：35
+            power_new = 31 + 2 * i;
             i++;
           }
           if (distanceR() - tmp_dis > 30)
           {
             setPower(31 - 0.01 * j); // 大顆電池 20度：31 25度：38|小顆電池 20度：29 25度：35
+            power_new = 31 + 2 * j;
             j++;
           }
           tmp_dis = distanceR();
@@ -275,12 +278,12 @@ int main(void)
           tmp_time = sec;
           if (distanceR() - tmp_dis < 12)
           {
-            setPower(31 + 2 * i); // 大顆電池 20度：31 25度：38|小顆電池 20度：29 25度：35
+            setPower(power_new + 2 * i);
             i++;
           }
           if (distanceR() - tmp_dis > 30)
           {
-            setPower(31 - 0.01 * j); // 大顆電池 20度：31 25度：38|小顆電池 20度：29 25度：35
+            setPower(power_new - 0.01 * j);
             j++;
           }
           tmp_dis = distanceR();
@@ -302,7 +305,7 @@ int main(void)
       j = 1; // correct times
       position_encoderR = 0;
       SSD1306_Clear();
-      while (position_encoderR < 225 && sec > 6)
+      while (position_encoderR < 225 && sec < 6)
       {
         lineFollowerBackward(100, 22.5, &trigger); // 大電池 20度：22.5 25度：31|小電池 20度：22 25度：27.5
         itoa(position_encoderR, buffer, 10);
